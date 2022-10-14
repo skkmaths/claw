@@ -7,7 +7,7 @@ def flux(x,u):
     return u*(1-u)
 
 # rusanov flux
-def rusanov(x, ul, ur, fl, fr): 
+def rusanov(x, ul, ur, fl, fr): # need to fix this
     # lam = max |f'(u)| for u between [ual, uar]
     a = np.abs([ul, ur]).max()
     return 0.5*(fl + fr) - 0.5*a*(ur - ul)
@@ -26,7 +26,7 @@ def nt(x,ul, ur, fl, fr, dul, dur, lam):
     return 0.5*(fl+fr)-(0.5/lam)*(ur-ul) + (0.25/lam)*(dul+dur)
 
 
-def uexact(x, t, u0):
+def uexact(x, t, u0): 
     ue = np.zeros(np.size(x))
     return ue
 
