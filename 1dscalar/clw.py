@@ -1,5 +1,5 @@
 """
-Solve u_t + f(u)_x = 0  for f(u) = u^2/2
+Solve u_t + f(u)_x = 0  for f(u) 
 Finite volume scheme
 """
 from xml import dom
@@ -71,6 +71,23 @@ for i in range(nc):
 u = uinit(x)   # solution variable
 res = np.zeros(nc)
 ue = uexact(x, 0.0 , uinit)
+s_u = np.zeros(nc) # to compute slopes in each cell
+
+
+# Minmod function
+def minmod(a,b,c):
+    sa = np.sign(a)
+    sb = np.sign(b)
+    sc = np.sign(c)
+    if sa==sb and sb==sc:
+        return sa * np.abs([a,b,c]).min()
+    else:
+        return 0.0
+def compute_slopes():
+    s_u[:] = 0.0
+    for i in range(nc):
+        
+
 
 # plot initial condition
 if args.plot_freq >0:
@@ -91,6 +108,7 @@ def compute_error(u1):
     error_norm1 = h*np.sum(np.abs(u1-ue))
     error_norm2 = np.sqrt(h*np.sum((u1-ue)**2))
     return error_norm1, error_norm2
+
 
 t, it = 0.0, 0
 while t < Tf:
