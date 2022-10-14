@@ -36,9 +36,9 @@ parser.add_argument('-ic', choices=('sin2pi', 'expo'),
                     help='Initial condition', default='sin2pi')
 parser.add_argument('-limit', choices=('no', 'tvb', 'blend'), help='Apply limiter',
                     default='no')
-parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-compute_error', choices=('no', 'yes'),
                     help='Compute error norm', default='no')
+parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 args = parser.parse_args()
 
 # Select PDE
@@ -69,6 +69,7 @@ ny = args.ncelly       # number of cells in the y-direction
 
 dx = (xmax - xmin)/nx
 dy = (ymax - ymin)/ny
+Mdx2 = args.tvbM*dx**2
 
 # Allocate solution variables
 v = np.zeros((nx+2, ny+2))  # solution at n+1
@@ -97,23 +98,20 @@ Xgrid = np.linspace(xmin, xmax, nx+1)
 Ygrid = np.linspace(ymin, ymax, ny+1)
 Ygrid, Xgrid = np.meshgrid(Ygrid, Xgrid)
 
+
 def minmod(a,b,c,Mdx2):
-    val = np.empty_like(a)
-    n = len(a)
-    for i in range(n):
-        if np.abs(a[i]) < Mdx2:
-            val[i] = a[i]
+    val = 0.0
+    if np.abs(a) < Mdx2:
+            val = a
+    else:
+        sa = np.sign(a)
+        sb = np.sign(b)
+        sc = np.sign(c)
+        if sa==sb and sb==sc:
+            val = sa * np.abs([a, b, c]).min()
         else:
-            sa = np.sign(a[i])
-            sb = np.sign(b[i])
-            sc = np.sign(c[i])
-            if sa==sb and sb==sc:
-                val[i] = sa * np.abs([a[i],b[i],c[i]]).min()
-            else:
-                val[i] = 0.0
+            val = 0.0
     return val
-
-
 
 def compute_slopes():
     s_x[:,:] = 0.0
@@ -124,7 +122,7 @@ def compute_slopes():
             dvl = v[i,j]-vl
             dvr = vr-v[i,j]
             dvc = vr-vl
-            s_y[i,j] = 2.0*theta*minmod(dvl, 0.5*dvc, dvr,1.0)
+            s_y[i,j] = 2.0*theta*minmod(dvl, 0.5*dvc, dvr,Mdx2)
     
     for j in range (1,ny+1):
         for i in range(1,nx+1):
@@ -132,7 +130,7 @@ def compute_slopes():
             dvl = v[i,j] - v[i-1,j]
             dvr = vr - v[i,j]
             dvc = vr-vl
-            s_x[i,j] = 2.0*theta*minmod(dvl, 0.5*dvc, dvr,1.0)
+            s_x[i,j] = 2.0*theta*minmod(dvl, 0.5*dvc, dvr,Mdx2)
     
     # slopes in ghost cell fro periodic case
     # x direction
