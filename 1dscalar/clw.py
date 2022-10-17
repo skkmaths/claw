@@ -15,6 +15,7 @@ parser.add_argument('-cfl', type=float, help='CFL number', default=0.9)
 parser.add_argument('-scheme',
                     choices=('C','LF','GLF','LLF','LW','ROE','EROE','GOD'),
                     help='Scheme', default='LF')
+parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-ic',
                     choices=('smooth','shock','rare1','rare','expo','slope'),
                     help='Initial condition', default='smooth')
@@ -70,6 +71,7 @@ elif args.ic == 'shock':
 xmin, xmax = 0.0, 1.0
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
+Mdx2 = args.tvbM*h**2.0
   
 for i in range(nc):
     x[i] = xmin + i*h + 0.5*h
@@ -79,6 +81,16 @@ res = np.zeros(nc)
 ue = uexact(x, 0.0 , uinit)
 s_u = np.zeros(nc) # to compute slopes in each cell
 
+def minmod(a,b,c,Mdx2):
+    if np.abs(a) < Mdx2:
+        return a
+    sa = np.sign(a)
+    sb = np.sign(b)
+    sc = np.sign(c)
+    if sa==sb and sb==sc:
+        return sa * np.abs([a,b,c]).min()
+    else:
+        return 0.0
 
 # Minmod function
 def minmod(a,b,c):
