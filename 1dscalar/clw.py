@@ -92,15 +92,7 @@ def minmod(a,b,c,Mdx2):
     else:
         return 0.0
 
-# Minmod function
-def minmod(a,b,c):
-    sa = np.sign(a)
-    sb = np.sign(b)
-    sc = np.sign(c)
-    if sa==sb and sb==sc:
-        return sa * np.abs([a,b,c]).min()
-    else:
-        return 0.0
+
 def compute_slopes():
     s_u[:] = 0.0
     for i in range(0,nc):
@@ -113,7 +105,7 @@ def compute_slopes():
         dvl = u[i] - vl
         dvr = vr - u[i]
         dvc = vr - vl
-        s_u[i] =2.0* theta * minmod(dvl, 0.5*dvc, dvr)
+        s_u[i] =2.0* theta * minmod(dvl, 0.5*dvc, dvr, Mdx2)
     
 # plot initial condition
 if args.plot_freq >0:
