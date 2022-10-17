@@ -17,7 +17,7 @@ parser.add_argument('-scheme',
                     help='Scheme', default='LF')
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-ic',
-                    choices=('smooth','shock','rare1','rare','expo','slope'),
+                    choices=('smooth','shock','rare1','hat','rare','expo','slope'),
                     help='Initial condition', default='smooth')
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 
@@ -67,6 +67,8 @@ if args.ic == 'smooth':
     uinit = smooth
 elif args.ic == 'shock':
     uinit = shock
+elif args.ic == 'hat':
+    uinit = hat
 
 xmin, xmax = 0.0, 1.0
 x   = np.zeros(nc)
