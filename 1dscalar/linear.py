@@ -14,7 +14,8 @@ def godunov(x, ul, ur, fl, fr):
 # Max speed based on cell average values
 def max_speed(u):
     return 1.0
-    
+
+# works for any initial data    
 def uexact(x, t, u0):
     return  u0(x-t)
 

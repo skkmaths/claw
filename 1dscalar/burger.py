@@ -13,7 +13,7 @@ def rusanov(x, ul, ur, fl, fr):
     return 0.5*(fl + fr) - 0.5*a*(ur - ul)
 
 def godunov(x, ul, ur, fl, fr):
-    return max(flux(x,max(ul,0.0),0.0),flux(x,min(ur,0.0),0.0) )
+    return max(flux(x,max(ul,0.0)),flux(x,min(ur,0.0)) )
 
 # Max speed based on cell average values
 def max_speed(u):
@@ -22,7 +22,7 @@ def max_speed(u):
 def nt(x,ul, ur, fl, fr, dul, dur, lam):
     return 0.5*(fl+fr)-(0.5/lam)*(ur-ul) + (0.25/lam)*(dul+dur)
 
-
+# works only for smooth solution
 def uexact(x, t, u0):
     ue = np.zeros(np.size(x))
     def imp_eqn(u):
