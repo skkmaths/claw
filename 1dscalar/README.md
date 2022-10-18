@@ -1,5 +1,4 @@
-# This code is written for u_t+ f(u)_x = 0,
-# to generate First order FVM and Second order minimod+ssprk22 scheme 
+# This code is written for u_t+ f(u)_x = 0, to generate First order FVM and Second order minimod+ssprk22 scheme 
 To run first order scheme enter the following
 '''
 python clw.py -pde linear -ic smooth -nc 50 -time_scheme euler -theta 0.0
