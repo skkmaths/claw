@@ -61,6 +61,7 @@ cfl   = args.cfl
 uinit = args.ic
 nc    = args.nc
 theta = args.theta  # parameter in the slopes
+beta = 2.0 # parameter in minmod
 time_scheme = args.time_scheme
 
 if args.ic == 'smooth':
@@ -107,16 +108,17 @@ def compute_slopes():
         dvl = u[i] - vl
         dvr = vr - u[i]
         dvc = vr - vl
-        s_u[i] =2.0* theta * minmod(dvl, 0.5*dvc, dvr, Mdx2)
+        s_u[i] =2.0* theta * minmod(beta*dvl, 0.5*dvc, beta*dvr, Mdx2)
     
 # plot initial condition
 if args.plot_freq >0:
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    line1,line2 = ax.plot(x, u, 'o',x, ue, '*')
+    line1,line2 = ax.plot(x, u, 'ro',x, ue, 'b')
     #line1, = ax.plot(x, u, 'o')
     ax.set_xlabel('x'); ax.set_ylabel('u')
     plt.title('nc='+str(nc)+', CFL='+str(cfl))
+    plt.legend(('Numerical','Exact'))
     plt.grid(True); plt.draw(); plt.pause(0.1)
     wait = input("Press enter to continue ")
 
