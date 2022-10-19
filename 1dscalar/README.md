@@ -1,4 +1,4 @@
-# This code is written for u_t+ f(u)_x = 0, to generate First order FVM and Second order minimod+ssprk22 scheme 
+## This code is written for u_t+ f(u)_x = 0, to generate First order FVM and Second order minimod+ssprk22 scheme 
 To run first order scheme enter the following
 
 ```
