@@ -148,7 +148,6 @@ def update_plot(fig, t, u1):
     plt.clf()
 
 
-
 # Fill ghost cells using periodicity
 def update_ghost():
     # left ghost cell
@@ -194,7 +193,6 @@ def apply_ssprk22 ( t, dt, lam_x, lam_y, v, res):
 
 # Residual for Lax-Wendroff scheme
 def compute_residual_lxw(t, dt, lam_x, lam_y, v, res):
-    vres[:,:] = 0.0
     update_ghost()  # Fill the ghost cell with values.
     # compute the inter-cell fluxes
     # loop over interior  vertical faces
@@ -205,13 +203,16 @@ def compute_residual_lxw(t, dt, lam_x, lam_y, v, res):
                           + 0.25 * lam_x * lam_y * (v[i+1,j+1] - v[i+1,j-1] - v[i-1,j+1] + v[i-1,j-1] ) \
                           + 0.5 * lam_y**2 * ( v[i,j-1] - 2.0*v[i,j] + v[i,j+1])
     return -vres
-
 # Compute residual of first order scheme
 def compute_residual_fo(t, dt,lam_x, lam_y, v, vres):
     vres[:,:] = 0.0
     update_ghost()  # Fill the ghost cell with values.
+    for i in range(1, nx+1):
+        for j in range(1, ny+1):
+            vres[i, j] = lam_x * ( v[i,j]- v[i-1,j]) + lam_y * (v[i,j]-v[i, j-1])
     # compute the inter-cell fluxes
     # loop over interior  vertical faces
+    '''
     for i in range(0, nx+1):
         xf = (xmin + i*dx)  # location of this face
         for j in range(1, ny+1):
@@ -229,6 +230,7 @@ def compute_residual_fo(t, dt,lam_x, lam_y, v, vres):
             Gn = ynumflux(x, yf, vl, vr, vl, vr)
             vres[i, j] += lamy*Gn
             vres[i, j+1] -= lamy*Gn
+    '''
     return vres
 schemes = { 'fo': apply_fo, 'lxw': apply_lxw, 'ssprk22' : apply_ssprk22 }
 it, t = 0, 0.0
