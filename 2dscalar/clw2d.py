@@ -102,13 +102,14 @@ def minmod(a,b,c):
 
 # Initialize plot
 def init_plot(ax1, ax2, u0):
+    '''
     sp = ax1.plot_surface(xgrid, ygrid, u0, cmap=cm.coolwarm,
                        linewidth=0, antialiased=False)
     ax1.set_title('Initial condition')
     ax1.set_xlabel('x')
     ax1.set_ylabel('y')
     ax1.set_ylabel('v')
-
+    '''
     cp = ax2.contour(xgrid, ygrid, u0, levels=16)
     ax2.set_title('Initial condition')
     ax2.set_xlabel('x')
@@ -121,6 +122,7 @@ def init_plot(ax1, ax2, u0):
 # Update plot
 def update_plot(fig, t, u1):
     plt.clf()
+    '''
     ax1 = fig.add_subplot(121,projection='3d')
     sp = ax1.plot_surface(xgrid, ygrid, u1, cmap=cm.coolwarm,
                        linewidth=0, antialiased=False)
@@ -129,8 +131,10 @@ def update_plot(fig, t, u1):
     ax1.set_xlabel('x')
     ax1.set_ylabel('y')
     ax1.set_ylabel('v')
+    '''
 
-    ax2 = fig.add_subplot(122)
+    #ax2 = fig.add_subplot(122)
+    ax2 = fig.add_subplot(111)
     cp = ax2.contour(xgrid, ygrid, u1, levels=16)
     ax2.set_title(str(nx)+'X'+str(ny)+' cells, CFL = '+str(round(cfl, 3)) +
               ', Diss = '+str(args.diss)+', t = '+str(round(t, 3)))
@@ -155,9 +159,11 @@ def update_ghost():
     # top ghost cell
     v[:,ny+1] = v[:,1]
 fig = plt.figure()
-ax1 = fig.add_subplot(121,projection='3d')
-ax2 = fig.add_subplot(122)
-init_plot(ax1, ax2, v[1:nx+1,1:ny+1])
+#ax1 = fig.add_subplot(121,projection='3d')
+#ax2 = fig.add_subplot(122)
+ax2 = fig.add_subplot(111)
+#init_plot(ax1, ax2, v[1:nx+1,1:ny+1])
+init_plot(ax2, ax2, v[1:nx+1,1:ny+1])
 wait = input("Press enter to continue ")
 t =0.1
 
