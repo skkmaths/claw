@@ -14,8 +14,8 @@ from matplotlib.ticker import LinearLocator
 parser = argparse.ArgumentParser()
 parser.add_argument('-pde', choices=('linear', 'varadv', 'burger', 'bucklev'),
                     help='PDE', default='linear')
-parser.add_argument('-scheme', choices=('fo', 'lxw', 'ssprk22' ), help='fo',
-                    default='fo')
+parser.add_argument('-scheme', choices=('lw','fv' ), help='lw',
+                    default='lw')
 parser.add_argument('-corr', choices=('radau', 'g2'), help='Correction function',
                     default='radau')
 parser.add_argument('-points', choices=('gl', 'gll'), help='Solution points',
@@ -31,8 +31,8 @@ parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
                     default=1)
 parser.add_argument('-ic', choices=('sin2pi', 'expo'),
                     help='Initial condition', default='sin2pi')
-parser.add_argument('-limit', choices=('no', 'tvb', 'blend'), help='Apply limiter',
-                    default='no')
+parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
+                    default='mmod')
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-compute_error', choices=('no', 'yes'),
                     help='Compute error norm', default='no')
@@ -58,8 +58,7 @@ else:
 
 # Select cfl
 cfl = args.cfl
-
-scheme = args.scheme
+beta = 2.0 # parameter in minmod
 nx = args.ncellx       # number of cells in the x-direction
 ny = args.ncelly       # number of cells in the y-direction
 
@@ -67,20 +66,21 @@ dx = (xmax - xmin)/nx
 dy = (ymax - ymin)/ny
 
 # Allocate solution variables
-v = np.zeros((nx+2, ny+2))  # solution at n+1
-vres = np.zeros((nx+2, ny+2))  # residual
+v = np.zeros((nx+4, ny+4))  # 2 ghost cells each side
+vres = np.zeros((nx+4, ny+4))  # 2 ghost cells each sideresidual
 
 # To store the cell averages only in real cells.
 
 # Set initial condition by interpolation
-for i in range(nx+2):
-    for j in range(ny+2):
-        x = xmin + (i-1)*dx+0.5 * dx     # transform gauss points to real cell
-        y = ymin + (j-1)*dy + 0.5 * dy 
+for i in range(nx+4):
+    for j in range(ny+4):
+        x = xmin + (i-2)*dx+0.5 * dx     # transform gauss points to real cell
+        y = ymin + (j-2)*dy + 0.5 * dy 
         val = initial_condition(x, y)
         v[i, j] = val
 # copy the initial condition
-v0 = v[1:nx+1,1:ny+1].copy()
+# index 2 to nx+1 and 2 to ny+1
+v0 = v[2:nx+2, 2:ny+2].copy()
 # it stores the coordinates of real cell centre
 xgrid = np.linspace(xmin+0.5*dx, xmax-0.5*dx, nx)
 ygrid = np.linspace(ymin+0.5*dy, ymax-0.5*dy, ny)
@@ -101,6 +101,11 @@ def minmod(a,b,c):
     else:
         return 0.0
 
+def reconstruct(conjm1, conj, conjp1):
+    conl = conj + 0.5*minmod( beta*(conj-conjm1), \
+                                0.5*(conjp1-conjm1), \
+                                beta*(conjp1-conj) )
+    return conl
 # Initialize plot
 def init_plot(ax1, ax2, u0):
     '''
@@ -152,12 +157,16 @@ def update_plot(fig, t, u1):
 def update_ghost():
     # left ghost cell
     v[0,:] = v[nx,:]
+    v[1,:] = v[nx+1,:]
     # right ghost cell
-    v[nx+1,:] = v[1,:]
+    v[nx+3,:] = v[3,:]
+    v[nx+2,:] = v[2,:]
     # bottom ghost cell
     v[:,0]= v[:,ny]
+    v[:,1]= v[:,ny+1]
     # top ghost cell
-    v[:,ny+1] = v[:,1]
+    v[:,ny+2] = v[:,2]
+    v[:,ny+3] = v[:,3]
 
 if args.plot_freq > 0:
     fig = plt.figure()
@@ -165,7 +174,7 @@ if args.plot_freq > 0:
     #ax2 = fig.add_subplot(122)
     ax2 = fig.add_subplot(111)
     #init_plot(ax1, ax2, v[1:nx+1,1:ny+1])
-    init_plot(ax2, ax2, v[1:nx+1,1:ny+1])
+    init_plot(ax2, ax2, v[2:nx+2,2:ny+2])
     wait = input("Press enter to continue ")
 
 # Find dt once since cfl does not depend on u or time
@@ -174,65 +183,56 @@ sx, sy = local_speed(xgrid,ygrid,v[1:nx+1,1:ny+1])
 #dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 #dt = 0.3 * dx
 dt = 0.72/(1.0/dx + 1.0/dy)
-# function to compute the residual v^n+1_i = v^n_i -res_i
 
-#Update solution by first order in time and space scheme
-def apply_fo( t, dt,lam_x, lam_y, v, vres):
-    vres = compute_residual_fo(t, dt,lam_x, lam_y, v, vres)
-    v = v - vres
-    return v
-
-#Update solution by LxW scheme
-def apply_lxw (t, dt,lam_x, lam_y, v, vres):
-    vres = compute_residual_lxw(t, dt, lam_x, lam_y, v, vres)
-    v = v - vres
-    return v
 #Update solution using RK time scheme
-def apply_ssprk22 ( t, dt, lam_x, lam_y, v, res):
+def apply_ssprk22 ( t, dt, lam_x, lam_y, v_old, v, vres):
+    #first stage
+    ts  = t
+    vres = compute_residual(ts, lam_x, lam_y, v, vres)
+    v = v - vres
+    
+    #second stage
+    ts = t + dt
+    vres = compute_residual(ts, lam_x, lam_y, v, vres)
+    v = 0.5 * v_old + 0.5 *(v - vres)
     return v
 
 # Residual for Lax-Wendroff scheme
 def compute_residual_lxw(t, dt, lam_x, lam_y, v, res):
     update_ghost()  # Fill the ghost cell with values.
-    # compute the inter-cell fluxes
-    # loop over interior  vertical faces
-    for i in range(1, nx+1):
-        for j in range(1, ny+1):
+    for i in range(2, nx+2): # 2 to nx+1
+        for j in range(2, ny+2):
             vres[i, j] = - 0.5 * lam_x * ( v[i+1,j]- v[i-1,j])- 0.5 * lam_y * (v[i,j+1]-v[i, j-1]) \
                           + 0.5 * lam_x**2 * (v[i-1,j] - 2.0*v[i,j] + v[i+1,j]) \
                           + 0.25 * lam_x * lam_y * (v[i+1,j+1] - v[i+1,j-1] - v[i-1,j+1] + v[i-1,j-1] ) \
                           + 0.5 * lam_y**2 * ( v[i,j-1] - 2.0*v[i,j] + v[i,j+1])
     return -vres
-# Compute residual of first order scheme
-def compute_residual_fo(t, dt,lam_x, lam_y, v, vres):
+# Compute residual of fv  scheme
+def compute_residual(t,lam_x, lam_y, v, vres):
     vres[:,:] = 0.0
     update_ghost()  # Fill the ghost cell with values.
-    for i in range(1, nx+1):
-        for j in range(1, ny+1):
-            vres[i, j] = lam_x * ( v[i,j]- v[i-1,j]) + lam_y * (v[i,j]-v[i, j-1])
     # compute the inter-cell fluxes
     # loop over interior  vertical faces
-    '''
-    for i in range(0, nx+1):
-        xf = (xmin + i*dx)  # location of this face
-        for j in range(1, ny+1):
-            y = ymin + (j-1)*dy+ 0.5*dy
-            vl, vr = v[i, j], v[i+1, j]
+    for i in range(1, nx+2):  # face between (i,j) and (i+1,j)
+        xf = (xmin + (i-1)*dx)  # x location of this face
+        for j in range(2, ny+2):
+            y = ymin + (j-2)*dy+ 0.5*dy # cetre of vertical face
+            vl = reconstruct(v[i-1, j], v[i, j], v[i+1, j])
+            vr = reconstruct(v[i+2, j], v[i+1, j], v[i, j])
             Fn = xnumflux(xf, y, vl, vr, vl , vr)
             vres[i, j] += lamx*Fn
             vres[i+1, j] -= lamx*Fn
     # loop over interior horizontal faces
-    for j in range(0, ny+1):
-        yf = (ymin + j*dy)
-        for i in range(1, nx+1):
-            x = xmin + (i-1)*dx + 0.5 * dx
-            vl, vr = v[i, j], v[i, j+1]
+    for j in range(1, ny+2):
+        yf = (ymin + (j-1)*dy)
+        for i in range(2, nx+2):
+            x = xmin + (i-2)*dx + 0.5 * dx
+            vl = reconstruct(v[i,j-1], v[i,j], v[i,j+1])
+            vr = reconstruct(v[i,j+2], v[i,j+1],v[i,j])
             Gn = ynumflux(x, yf, vl, vr, vl, vr)
             vres[i, j] += lamy*Gn
-            vres[i, j+1] -= lamy*Gn
-    '''
+            vres[i,j+1] -= lamy*Gn
     return vres
-schemes = { 'fo': apply_fo, 'lxw': apply_lxw, 'ssprk22' : apply_ssprk22 }
 it, t = 0, 0.0
 Tf = args.Tf
 while t < Tf:
@@ -241,18 +241,23 @@ while t < Tf:
     lamx, lamy = dt/dx,  dt/dy
     # Loop over real cells (no ghost cell) and compute cell integral
     v_old = v
-    v = schemes[scheme](t, dt, lamx, lamy, v, vres )
+    if args.scheme == 'lw':
+        vres = compute_residual_lxw(t, dt, lamx, lamy, v, vres)
+        v = v - vres
+    elif args.scheme == 'fv':
+        v = apply_ssprk22 ( t, dt, lamx, lamy, v_old, v, vres)
+
     t, it = t+dt, it+1
     if args.plot_freq > 0:
-        print('it,t,min,max =', it, t, v[1:nx+1,1:ny+1].min(), v[1:nx+1,1:ny+1].max())
+        print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
         if it% args.plot_freq == 0:
-            update_plot(fig, t, v[1:nx+1,1:ny+1])
+            update_plot(fig, t, v[2:nx+2,2:ny+2])
 
 # Compute error norm: initial condition is exact solution
 if args.compute_error == 'yes':
-    l1_err = np.sum(np.abs(v[1:nx+1,1:ny+1]-v0)) / (nx*ny)
-    l2_err = np.sqrt(np.sum((v[1:nx+1,1:ny+1]-v0)**2) / (nx*ny))
-    li_err = np.abs(v[1:nx+1,1:ny+1]-v0).max()
+    l1_err = np.sum(np.abs(v[2:nx+2,2:ny+2]-v0)) / (nx*ny)
+    l2_err = np.sqrt(np.sum((v[2:nx+2,2:ny+2]-v0)**2) / (nx*ny))
+    li_err = np.abs(v[2:nx+2,2:ny+2]-v0).max()
     print('dx,dy,l1,l2,linf error =')# %10.4e %10.4e %10.4e %10.4e %10.4e' % 
     print(dx,dy,l1_err,l2_err,li_err)
 if args.plot_freq > 0: 
