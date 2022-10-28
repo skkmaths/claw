@@ -1,5 +1,5 @@
 ## This code is written for u_t+ a(x,y)u_x + b(x,y)u_y = 0, 
-# minmod+ssprk22 and Lx Wendroff schemes are implemented for constant and variable advection speeds
+minmod+ssprk22 and Lx Wendroff schemes are implemented for constant and variable advection speeds
 Run as follows for minmod+ssprk22 scheme
 ```
 python clw2d.py -scheme fv -Tf 1.0 -pde linear -ic sin2pi -ncellx 100 -ncelly 100
