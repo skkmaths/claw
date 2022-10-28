@@ -26,7 +26,7 @@ int main ()
 {
    cout << "Starting reservoir problem ..." << endl;
 
-   unsigned int n_cycles=1;
+   unsigned int n_cycles=4;
    std::ofstream  fo;
   // std::string filename="error.dat";
 
