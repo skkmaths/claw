@@ -178,14 +178,13 @@ if args.plot_freq > 0:
     wait = input("Press enter to continue ")
 
 # Find dt once since cfl does not depend on u or time
-#sx, sy = local_speed(xgrid,ygrid,v[1:nx+1,1:ny+1])
+sx, sy = local_speed(xgrid, ygrid, v[2:nx+2,2:ny+2])
 # |sigma_x| + |sigma_y| = cfl
 #dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-#dt = 0.3 * dx
 if ( args.scheme == 'lw'):
-    dt = 0.72/(1.0/dx + 1.0/dy)
+    dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 elif (args.scheme == 'fv'):
-    dt = args.cfl/(1.0/dx + 1.0/dy + 1.0e-14)
+    dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 
 
 #Update solution using RK time scheme
@@ -223,7 +222,8 @@ def compute_residual(t,lam_x, lam_y, v, vres):
             y = ymin + (j-2)*dy+ 0.5*dy # cetre of vertical face
             vl = reconstruct(v[i-1, j], v[i, j], v[i+1, j])
             vr = reconstruct(v[i+2, j], v[i+1, j], v[i, j])
-            Fn = xnumflux(xf, y, vl, vr, vl , vr)
+            Fl, Fr = xflux(xf, y, vl), xflux(xf, y, vr)
+            Fn = xnumflux(xf, y, Fl, Fr, vl, vr)
             vres[i, j] += lamx*Fn
             vres[i+1, j] -= lamx*Fn
     # loop over interior horizontal faces
@@ -233,7 +233,8 @@ def compute_residual(t,lam_x, lam_y, v, vres):
             x = xmin + (i-2)*dx + 0.5 * dx
             vl = reconstruct(v[i,j-1], v[i,j], v[i,j+1])
             vr = reconstruct(v[i,j+2], v[i,j+1],v[i,j])
-            Gn = ynumflux(x, yf, vl, vr, vl, vr)
+            Gl, Gr = yflux(x,yf, vl), yflux(x,yf, vr)
+            Gn = ynumflux(x, yf, Gl, Gr, vl, vr)
             vres[i, j] += lamy*Gn
             vres[i,j+1] -= lamy*Gn
     return vres
