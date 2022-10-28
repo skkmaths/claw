@@ -1,1 +1,0 @@
-# Program for u_t + au_x + bu_y = 0, (a,b) is the speed
