@@ -7,6 +7,9 @@ def xflux(x, y, u):
 def yflux(x, y, u):
     return u
 
+def advection_velocity(x,y):
+    return (1,1)
+
 # Upwind flux
 def xnumflux(x, y, Fl, Fr, ul, ur):
     return 0.5*(Fl + Fr) - 0.5*(ur - ul)

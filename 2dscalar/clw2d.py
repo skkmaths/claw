@@ -107,6 +107,11 @@ def reconstruct(conjm1, conj, conjp1):
                                 beta*(conjp1-conj) )
     return conl
 # Initialize plot
+def lwflux(u,v,dx,dy,dt,ql,qr,qdl,qdr,qul,qur):
+    qt = - u * (qr - ql)/dx - v * (qul - qdl + qur - qdr)/(4.0*dy)
+    flux = u * (ql + qr)/2.0  + 0.5 * dt * u * qt
+    return flux
+
 def init_plot(ax1, ax2, u0):
     '''
     sp = ax1.plot_surface(xgrid, ygrid, u0, cmap=cm.coolwarm,
@@ -199,8 +204,37 @@ def apply_ssprk22 ( t, dt, lam_x, lam_y, v_old, v, vres):
     vres = compute_residual(ts, lam_x, lam_y, v, vres)
     v = 0.5 * v_old + 0.5 *(v - vres)
     return v
-
-# Residual for Lax-Wendroff scheme
+# Residual for Lax-Wendroff scheme in fv conservative form
+def compute_residual_lw(t, dt, lam_x, lam_y, v, vres):
+    vres[:,:] = 0.0
+    update_ghost()  # Fill the ghost cell with values.
+    # compute the inter-cell fluxes
+    # loop over interior  vertical faces
+    for i in range(1, nx+2):  # face between (i,j) and (i+1,j)
+        xf = (xmin + (i-1)*dx)  # x location of this face
+        for j in range(2, ny+2):
+            y = ymin + (j-2)*dy+ 0.5*dy # cetre of vertical face
+            speed = advection_velocity(xf,y)
+            Fn = lwflux(speed[0], speed[1], dx, dy, dt, \
+                        v[i,j],  v[i+1,j], \
+                        v[i,j-1], v[i+1,j-1], \
+                        v[i,j+1],v[i+1,j+1])
+            vres[i, j] += lamx*Fn
+            vres[i+1, j] -= lamx*Fn
+    # loop over interior horizontal faces
+    for j in range(1, ny+2):
+        yf = (ymin + (j-1)*dy)
+        for i in range(2, nx+2):
+            x = xmin + (i-2)*dx + 0.5 * dx
+            speed = advection_velocity(x,yf)
+            Gn = lwflux(speed[1], -speed[0], dy, dx, dt, \
+                        v[i,j],  v[i,j+1], \
+                        v[i+1,j],v[i+1,j+1], \
+                        v[i-1,j],v[i-1,j+1])
+            vres[i, j] += lamy*Gn
+            vres[i,j+1] -= lamy*Gn
+    return vres
+# Residual for Lax-Wendroff scheme in fd form
 def compute_residual_lxw(t, dt, lam_x, lam_y, v, res):
     update_ghost()  # Fill the ghost cell with values.
     for i in range(2, nx+2): # 2 to nx+1
@@ -247,7 +281,7 @@ while t < Tf:
     # Loop over real cells (no ghost cell) and compute cell integral
     v_old = v
     if args.scheme == 'lw':
-        vres = compute_residual_lxw(t, dt, lamx, lamy, v, vres)
+        vres = compute_residual_lw(t, dt, lamx, lamy, v, vres)
         v = v - vres
     elif args.scheme == 'fv':
         v = apply_ssprk22 ( t, dt, lamx, lamy, v_old, v, vres)
