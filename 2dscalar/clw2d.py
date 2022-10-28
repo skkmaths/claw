@@ -178,11 +178,15 @@ if args.plot_freq > 0:
     wait = input("Press enter to continue ")
 
 # Find dt once since cfl does not depend on u or time
-sx, sy = local_speed(xgrid,ygrid,v[1:nx+1,1:ny+1])
+#sx, sy = local_speed(xgrid,ygrid,v[1:nx+1,1:ny+1])
 # |sigma_x| + |sigma_y| = cfl
 #dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 #dt = 0.3 * dx
-dt = 0.72/(1.0/dx + 1.0/dy)
+if ( args.scheme == 'lw'):
+    dt = 0.72/(1.0/dx + 1.0/dy)
+elif (args.scheme == 'fv'):
+    dt = args.cfl/(1.0/dx + 1.0/dy + 1.0e-14)
+
 
 #Update solution using RK time scheme
 def apply_ssprk22 ( t, dt, lam_x, lam_y, v_old, v, vres):
