@@ -6,6 +6,7 @@ Run as follows for minmod+ssprk22 scheme
 python clw2d.py -scheme fv -Tf 1.0 -pde linear -ic sin2pi -ncellx 100 -ncelly 100
 ```
 
+Run as follows for LxW scheme
 ```
 python clw2d.py -scheme lw -Tf 8.0 -pde varadv -ic expo -ncellx 100 -ncelly 100 
 ```
