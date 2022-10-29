@@ -84,7 +84,7 @@ for i in range(nc):
 u = np.zeros(nc+4)    # with 4 ghost cells, 2 each sides 
 u[2:nc+2] = uinit(x)   # initialize solution variable
 res = np.zeros(nc+4)
-
+s_u = np.zeros(nc+4)
 def minmod(a,b,c,Mdx2):
     if np.abs(a) < Mdx2:
         return a
@@ -117,17 +117,26 @@ def compute_error(u1,t):
     error_norm2 = np.sqrt(h*np.sum((u1-ue)**2))
     return error_norm1, error_norm2
 
-def reconstruct(conjm1, conj, conjp1):
+def compute_slopes():
+    s_u[:] = 0.0
+    for i in range(1,nc+3):
+        vl, vr = u[i-1], u[i+1]
+        dvl = u[i] - vl
+        dvr = vr - u[i]
+        dvc = vr - vl
+        s_u[i] =2.0* alpha * minmod(beta*dvl, 0.5*dvc, beta*dvr, Mdx2)
+
+def reconstruct(ujm1, uj, ujp1):
     if args.limit == 'no':
-        return conj
+        return uj
     elif args.limit == 'mmod':
-        dj = 2.0* alpha * minmod( beta*(conj-conjm1), \
-                                0.5*(conjp1-conjm1), \
-                                beta*(conjp1-conj), Mdx2 )
-        conl = conj + 0.5 * dj
-        return conl
+        dj = 2.0* alpha * minmod( beta*(uj-ujm1), \
+                                0.5*(ujp1-ujm1), \
+                                beta*(ujp1-uj), Mdx2 )
+        ul = uj + 0.5 * dj
+        return ul
     else:
-        print('limit type not define')
+        print('limit type not defined')
         exit()
 def update_ghost(u1):
     # left ghost cell
@@ -136,45 +145,46 @@ def update_ghost(u1):
 
     u1[nc+3] = u1[3]
     u1[nc+2] = u1[2]
-
+    
 # First order Euler forward step
 def apply_euler(t,lam, u_old, u, ures ):
     #first stage
     ts  = t
+    compute_slopes(u)
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
+    update_ghost(u)
     return u
 
 def apply_ssprk22(t,lam, u_old, u, ures ):
     #first stage
     ts  = t
+    compute_slopes()
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
-    
+    update_ghost(u)
+
     #second stage
     ts = t + dt
+    compute_slopes()
     ures = compute_residual(ts, lam, u, ures)
     u = 0.5 * u_old + 0.5 *(u - lam * ures)
-    
+    update_ghost(u)
     return u
 
 def compute_residual(ts, lam, u, res):
     res[:] = 0.0    
-    # loop through all faces
-    update_ghost(u)
-    
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
-        ul = reconstruct(u[i-1], u[i], u[i+1])
-        ur = reconstruct(u[i+2], u[i+1], u[i])
+        #ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
+        ul, ur = u[i] + 0.5* s_u[i], u[i+1] - 0.5* s_u[i+1]
         fl, fr = flux(xf,ul), flux(xf,ur)
         fn = numflux(xf, ul, ur, fl, fr)
         res[i] += fn
         res[i+1] -= fn
-
     return res
 
-time_schemes = { 'euler': apply_euler, 'ssprk22' : apply_ssprk22 }
+time_schemes = {'euler': apply_euler, 'ssprk22' : apply_ssprk22 }
 
 t, it = 0.0, 0
 while t < Tf:
@@ -191,10 +201,9 @@ while t < Tf:
         dt = Tf - t
         lam = dt/h
     
-    u_old = u
-    
+    u_old = u    
     u = time_schemes[time_scheme](t, lam, u_old, u, res)  # update solution
-
+    
     t += dt; it += 1 # update time step
     if args.plot_freq >0:
         ue = uexact(x, t , uinit)
