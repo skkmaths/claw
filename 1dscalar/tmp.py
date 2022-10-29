@@ -129,13 +129,13 @@ def reconstruct(conjm1, conj, conjp1):
     else:
         print('limit type not define')
         exit()
-def update_ghost():
+def update_ghost(u1):
     # left ghost cell
-    u[0] = u[nc]
-    u[1] = u[nc+1]
+    u1[0] = u1[nc]
+    u1[1] = u1[nc+1]
 
-    u[nc+3] = u[3]
-    u[nc+2] = u[2]
+    u1[nc+3] = u1[3]
+    u1[nc+2] = u1[2]
 
 # First order Euler forward step
 def apply_euler(t,lam, u_old, u, ures ):
@@ -155,12 +155,13 @@ def apply_ssprk22(t,lam, u_old, u, ures ):
     ts = t + dt
     ures = compute_residual(ts, lam, u, ures)
     u = 0.5 * u_old + 0.5 *(u - lam * ures)
+    
     return u
 
 def compute_residual(ts, lam, u, res):
     res[:] = 0.0    
     # loop through all faces
-    update_ghost()
+    update_ghost(u)
     
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
