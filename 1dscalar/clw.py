@@ -123,7 +123,7 @@ if args.plot_freq >0:
     wait = input("Press enter to continue ")
 
 #Error computation
-def compute_error(u1):
+def compute_error(u1,t):
     error_norm1 = 0.0; error_norm2 = 0.0
     ue = uexact(x, t , uinit)
     dom_len = xmax - xmin
@@ -184,8 +184,14 @@ time_schemes = { 'euler': apply_euler, 'ssprk22' : apply_ssprk22 }
 
 t, it = 0.0, 0
 while t < Tf:
-    
-    dt= cfl * h /max_speed(u)
+    if args.pde == 'linear':
+        dt= cfl * h
+    elif args.pde == 'burger':
+        dt= cfl * h /max_speed(u)
+    else:
+        print('dt is not set')
+        exit()
+        
     lam = dt/h
     if t+dt > Tf:
         dt = Tf - t
@@ -207,7 +213,7 @@ np.savetxt(fname, np.column_stack([x, u]))
 print('Saved file ', fname)
 
 if args.compute_error == 'yes':
-    er1, er2 = compute_error(u)
+    er1, er2 = compute_error(u,t)
     print('h, L1 error norm, L2 error norm = ')
     print(h, er1, er2)
 if args.plot_freq >0:
