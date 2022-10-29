@@ -14,8 +14,8 @@ from matplotlib.ticker import LinearLocator
 parser = argparse.ArgumentParser()
 parser.add_argument('-pde', choices=('linear', 'varadv', 'burger', 'bucklev'),
                     help='PDE', default='linear')
-parser.add_argument('-scheme', choices=('lw','fv' ), help='lw',
-                    default='lw')
+parser.add_argument('-scheme', choices=('lw','rk2','fo' ), help='lw',
+                    default='fo')
 parser.add_argument('-corr', choices=('radau', 'g2'), help='Correction function',
                     default='radau')
 parser.add_argument('-points', choices=('gl', 'gll'), help='Solution points',
@@ -32,7 +32,7 @@ parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
 parser.add_argument('-ic', choices=('sin2pi', 'expo'),
                     help='Initial condition', default='sin2pi')
 parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
-                    default='mmod')
+                    default='no')
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-compute_error', choices=('no', 'yes'),
                     help='Compute error norm', default='no')
@@ -102,10 +102,16 @@ def minmod(a,b,c):
         return 0.0
 
 def reconstruct(conjm1, conj, conjp1):
-    conl = conj + 0.5*minmod( beta*(conj-conjm1), \
+    if args.limit == 'no':
+        return conj
+    elif args.limit == 'mmod':
+        conl = conj + 0.5*minmod( beta*(conj-conjm1), \
                                 0.5*(conjp1-conjm1), \
                                 beta*(conjp1-conj) )
-    return conl
+        return conl
+    else:
+        print('limit type not define')
+        exit()
 # Initialize plot
 def lwflux(u,v,dx,dy,dt,ql,qr,qdl,qdr,qul,qur):
     qt = - u * (qr - ql)/dx - v * (qul - qdl + qur - qdr)/(4.0*dy)
@@ -182,14 +188,6 @@ if args.plot_freq > 0:
     init_plot(ax2, ax2, v[2:nx+2,2:ny+2])
     wait = input("Press enter to continue ")
 
-# Find dt once since cfl does not depend on u or time
-sx, sy = local_speed(xgrid, ygrid, v[2:nx+2,2:ny+2])
-# |sigma_x| + |sigma_y| = cfl
-#dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-if ( args.scheme == 'lw'):
-    dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-elif (args.scheme == 'fv'):
-    dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 
 
 #Update solution using RK time scheme
@@ -272,6 +270,16 @@ def compute_residual(t,lam_x, lam_y, v, vres):
             vres[i, j] += lamy*Gn
             vres[i,j+1] -= lamy*Gn
     return vres
+
+# Find dt once since cfl does not depend on u or time
+sx, sy = local_speed(xgrid, ygrid, v[2:nx+2,2:ny+2])
+# |sigma_x| + |sigma_y| = cfl
+#dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
+if ( args.scheme == 'lw'):
+    dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
+elif (args.scheme == 'fo' or args.scheme == 'rk2'):
+    dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
+
 it, t = 0, 0.0
 Tf = args.Tf
 while t < Tf:
@@ -283,8 +291,12 @@ while t < Tf:
     if args.scheme == 'lw':
         vres = compute_residual_lw(t, dt, lamx, lamy, v, vres)
         v = v - vres
-    elif args.scheme == 'fv':
+    elif args.scheme == 'rk2':
         v = apply_ssprk22 ( t, dt, lamx, lamy, v_old, v, vres)
+    elif args.scheme == 'fo':
+        vres = compute_residual(t,lamx, lamy, v, vres)
+        v = v - vres
+    
 
     t, it = t+dt, it+1
     if args.plot_freq > 0:
