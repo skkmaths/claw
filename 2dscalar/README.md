@@ -3,12 +3,16 @@ minmod+ssprk22 and Lx Wendroff schemes are implemented for constant and variable
 
 Run as follows for minmod+ssprk22 scheme
 ```
-python clw2d.py -scheme fv -Tf 1.0 -pde linear -ic sin2pi -ncellx 100 -ncelly 100
+python clw2d.py -Tf 1.0  -pde linear -scheme rk2 -limit mmod
 ```
 
 Run as follows for LxW scheme
 ```
-python clw2d.py -scheme lw -Tf 8.0 -pde varadv -ic expo -ncellx 100 -ncelly 100 
+python clw2d.py -scheme lw -Tf 1.0 -pde linear -ic sin2pi 
+```
+Run as follows for first order fv scheme 
+```
+python clw2d.py -scheme fo -Tf 1.0 -pde linear
 ```
 ## To test the order of accuracy, run the script file
 ```
