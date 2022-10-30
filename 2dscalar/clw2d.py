@@ -84,6 +84,7 @@ v0 = v[2:nx+2, 2:ny+2].copy()
 # it stores the coordinates of real cell centre
 xgrid = np.linspace(xmin+0.5*dx, xmax-0.5*dx, nx)
 ygrid = np.linspace(ymin+0.5*dy, ymax-0.5*dy, ny)
+x1, y1 = xgrid,  ygrid # to plot 1d graph
 ygrid, xgrid = np.meshgrid(ygrid, xgrid)
 
 # it stores the coordinates of vertices of the real cells
@@ -118,7 +119,7 @@ def lwflux(u,v,dx,dy,dt,ql,qr,qdl,qdr,qul,qur):
     flux = u * (ql + qr)/2.0  + 0.5 * dt * u * qt
     return flux
 
-def init_plot(ax1, ax2, u0):
+def init_plot(ax1, ax2,ax3, u0):
     '''
     sp = ax1.plot_surface(xgrid, ygrid, u0, cmap=cm.coolwarm,
                        linewidth=0, antialiased=False)
@@ -133,6 +134,8 @@ def init_plot(ax1, ax2, u0):
     ax2.set_ylabel('y')
     plt.colorbar(cp)
 
+    line1,line2 = ax3.plot(y1,u0[ny-1,0:ny],'ro', y1, u0[ny-1,0:ny],'b')
+    
     plt.draw()
     plt.pause(0.1)
 
@@ -151,14 +154,16 @@ def update_plot(fig, t, u1):
     '''
 
     #ax2 = fig.add_subplot(122)
-    ax2 = fig.add_subplot(111)
+    ax2 = fig.add_subplot(121)
     cp = ax2.contour(xgrid, ygrid, u1, levels=16)
     ax2.set_title(str(nx)+'X'+str(ny)+' cells, CFL = '+str(round(cfl, 3)) +
               ', Diss = '+str(args.diss)+', t = '+str(round(t, 3)))
     ax2.set_xlabel('x')
     ax2.set_ylabel('y')
     plt.colorbar(cp)
-
+    ax3 = fig.add_subplot(122)
+    line1,line2 = ax3.plot(y1,u1[ny-1,0:ny],'ro', y1, v0[ny-1,0:ny],'b')
+    
     plt.draw()
     plt.pause(0.1)
     plt.clf()
@@ -183,9 +188,10 @@ if args.plot_freq > 0:
     fig = plt.figure()
     #ax1 = fig.add_subplot(121,projection='3d')
     #ax2 = fig.add_subplot(122)
-    ax2 = fig.add_subplot(111)
+    ax2 = fig.add_subplot(121)
+    ax3 = fig.add_subplot(122)
     #init_plot(ax1, ax2, v[1:nx+1,1:ny+1])
-    init_plot(ax2, ax2, v[2:nx+2,2:ny+2])
+    init_plot(ax2, ax2, ax3, v[2:nx+2,2:ny+2])
     wait = input("Press enter to continue ")
 
 
@@ -278,7 +284,7 @@ if ( args.scheme == 'lw'):
     dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 elif (args.scheme == 'fo' or args.scheme == 'rk2'):
     dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-
+dt = dx
 it, t = 0, 0.0
 Tf = args.Tf
 while t < Tf:
@@ -305,6 +311,7 @@ while t < Tf:
         if it% args.plot_freq == 0:
             update_plot(fig, t, v[2:nx+2,2:ny+2])
 
+
 # Compute error norm: initial condition is exact solution
 if args.compute_error == 'yes':
     l1_err = np.sum(np.abs(v[2:nx+2,2:ny+2]-v0)) / (nx*ny)
@@ -314,6 +321,7 @@ if args.compute_error == 'yes':
     print(dx,dy,l1_err,l2_err,li_err)
 if args.plot_freq > 0: 
     plt.show()
+
 # Things to do
 # --------------------------------
 # Save cell average solution to file
