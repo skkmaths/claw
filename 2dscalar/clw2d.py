@@ -135,7 +135,7 @@ def init_plot(ax1, ax2,ax3, u0):
     plt.colorbar(cp)
 
     line1,line2 = ax3.plot(y1,u0[ny-1,0:ny],'ro', y1, u0[ny-1,0:ny],'b')
-    
+    plt.grid(True);
     plt.draw()
     plt.pause(0.1)
 
@@ -163,7 +163,7 @@ def update_plot(fig, t, u1):
     plt.colorbar(cp)
     ax3 = fig.add_subplot(122)
     line1,line2 = ax3.plot(y1,u1[ny-1,0:ny],'ro', y1, v0[ny-1,0:ny],'b')
-    
+    plt.grid(True);
     plt.draw()
     plt.pause(0.1)
     plt.clf()
