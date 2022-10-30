@@ -105,7 +105,7 @@ def reconstruct(conjm1, conj, conjp1):
     if args.limit == 'no':
         return conj
     elif args.limit == 'mmod':
-        conl = conj + 0.5*minmod( beta*(conj-conjm1), \
+        conl = conj + 0.5 * minmod( beta*(conj-conjm1), \
                                 0.5*(conjp1-conjm1), \
                                 beta*(conjp1-conj) )
         return conl
@@ -165,19 +165,19 @@ def update_plot(fig, t, u1):
 
 
 # Fill ghost cells using periodicity
-def update_ghost():
+def update_ghost(v1):
     # left ghost cell
-    v[0,:] = v[nx,:]
-    v[1,:] = v[nx+1,:]
+    v1[0,:] = v1[nx,:]
+    v1[1,:] = v1[nx+1,:]
     # right ghost cell
-    v[nx+3,:] = v[3,:]
-    v[nx+2,:] = v[2,:]
+    v1[nx+3,:] = v1[3,:]
+    v1[nx+2,:] = v1[2,:]
     # bottom ghost cell
-    v[:,0]= v[:,ny]
-    v[:,1]= v[:,ny+1]
+    v1[:,0]= v1[:,ny]
+    v1[:,1]= v1[:,ny+1]
     # top ghost cell
-    v[:,ny+2] = v[:,2]
-    v[:,ny+3] = v[:,3]
+    v1[:,ny+2] = v1[:,2]
+    v1[:,ny+3] = v1[:,3]
 
 if args.plot_freq > 0:
     fig = plt.figure()
@@ -196,16 +196,17 @@ def apply_ssprk22 ( t, dt, lam_x, lam_y, v_old, v, vres):
     ts  = t
     vres = compute_residual(ts, lam_x, lam_y, v, vres)
     v = v - vres
+    update_ghost(v)
     
     #second stage
     ts = t + dt
     vres = compute_residual(ts, lam_x, lam_y, v, vres)
-    v = 0.5 * v_old + 0.5 *(v - vres)
+    v = 0.5 * v_old + 0.5 * (v - vres)
+    update_ghost(v)
     return v
 # Residual for Lax-Wendroff scheme in fv conservative form
 def compute_residual_lw(t, dt, lam_x, lam_y, v, vres):
     vres[:,:] = 0.0
-    update_ghost()  # Fill the ghost cell with values.
     # compute the inter-cell fluxes
     # loop over interior  vertical faces
     for i in range(1, nx+2):  # face between (i,j) and (i+1,j)
@@ -234,7 +235,6 @@ def compute_residual_lw(t, dt, lam_x, lam_y, v, vres):
     return vres
 # Residual for Lax-Wendroff scheme in fd form
 def compute_residual_lxw(t, dt, lam_x, lam_y, v, res):
-    update_ghost()  # Fill the ghost cell with values.
     for i in range(2, nx+2): # 2 to nx+1
         for j in range(2, ny+2):
             vres[i, j] = - 0.5 * lam_x * ( v[i+1,j]- v[i-1,j])- 0.5 * lam_y * (v[i,j+1]-v[i, j-1]) \
@@ -245,7 +245,6 @@ def compute_residual_lxw(t, dt, lam_x, lam_y, v, res):
 # Compute residual of fv  scheme
 def compute_residual(t,lam_x, lam_y, v, vres):
     vres[:,:] = 0.0
-    update_ghost()  # Fill the ghost cell with values.
     # compute the inter-cell fluxes
     # loop over interior  vertical faces
     for i in range(1, nx+2):  # face between (i,j) and (i+1,j)
@@ -291,11 +290,13 @@ while t < Tf:
     if args.scheme == 'lw':
         vres = compute_residual_lw(t, dt, lamx, lamy, v, vres)
         v = v - vres
+        update_ghost(v)
     elif args.scheme == 'rk2':
         v = apply_ssprk22 ( t, dt, lamx, lamy, v_old, v, vres)
     elif args.scheme == 'fo':
         vres = compute_residual(t,lamx, lamy, v, vres)
         v = v - vres
+        update_ghost(v)
     
 
     t, it = t+dt, it+1
