@@ -284,7 +284,7 @@ if ( args.scheme == 'lw'):
     dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 elif (args.scheme == 'fo' or args.scheme == 'rk2'):
     dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-dt = dx
+
 it, t = 0, 0.0
 Tf = args.Tf
 while t < Tf:
