@@ -150,7 +150,6 @@ def update_ghost(u1):
 def apply_euler(t,lam, u_old, u, ures ):
     #first stage
     ts  = t
-    compute_slopes(u)
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
     update_ghost(u)
@@ -214,6 +213,7 @@ while t < Tf:
 fname = 'sol.txt'
 np.savetxt(fname, np.column_stack([x, u[2:nc+2]]))
 print('Saved file ', fname)
+
 
 if args.compute_error == 'yes':
     er1, er2 = compute_error(u[2:nc+2],t)
