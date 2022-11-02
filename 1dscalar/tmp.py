@@ -95,7 +95,7 @@ def minmod(a,b,c,Mdx2):
         return sa * np.abs([a,b,c]).min()
     else:
         return 0.0
-    
+t = 0.0 # time
 # plot initial condition
 if args.plot_freq >0:
     fig = plt.figure()
@@ -103,7 +103,7 @@ if args.plot_freq >0:
     line1,line2 = ax.plot(x, u[2:nc+2], 'ro',x, u[2:nc+2], 'b')
     #line1, = ax.plot(x, u, 'o')
     ax.set_xlabel('x'); ax.set_ylabel('u')
-    plt.title('nc='+str(nc)+', CFL='+str(cfl))
+    plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
     plt.legend(('Numerical','Exact'))
     plt.grid(True); plt.draw(); plt.pause(0.1)
     wait = input("Press enter to continue ")
@@ -208,6 +208,7 @@ while t < Tf:
         ue = uexact(x, t , uinit)
         line1.set_ydata(u[2:nc+2])
         line2.set_ydata(ue)
+        plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
         plt.draw(); plt.pause(0.1)
 
 fname = 'sol.txt'
