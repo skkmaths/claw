@@ -150,25 +150,28 @@ def update_ghost(u1):
 def apply_euler(t,lam, u_old, u, ures ):
     #first stage
     ts  = t
+    update_ghost(u)
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
-    update_ghost(u)
+    
     return u
 
 def apply_ssprk22(t,lam, u_old, u, ures ):
     #first stage
     ts  = t
+    update_ghost(u)
     compute_slopes()
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
-    update_ghost(u)
+    
 
     #second stage
     ts = t + dt
+    update_ghost(u)
     compute_slopes()
     ures = compute_residual(ts, lam, u, ures)
     u = 0.5 * u_old + 0.5 *(u - lam * ures)
-    update_ghost(u)
+    
     return u
 
 def compute_residual(ts, lam, u, res):
