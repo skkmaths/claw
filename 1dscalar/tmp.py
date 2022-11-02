@@ -161,7 +161,7 @@ def apply_ssprk22(t,lam, u_old, u, ures ):
     #first stage
     ts  = t
     update_ghost(u)
-    compute_slopes(u)
+    #compute_slopes(u)
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
     
@@ -169,7 +169,7 @@ def apply_ssprk22(t,lam, u_old, u, ures ):
     #second stage
     ts = t + dt
     update_ghost(u)
-    compute_slopes(u)  # if you pass u_old you get a better result here
+    #compute_slopes(u)  # if you pass u_old you get a better result here
     ures = compute_residual(ts, lam, u, ures)
     u = 0.5 * u_old + 0.5 *(u - lam * ures)
     
@@ -179,8 +179,8 @@ def compute_residual(ts, lam, u, res):
     res[:] = 0.0    
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
-        #ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
-        ul, ur = u[i] + 0.5* s_u[i], u[i+1] - 0.5* s_u[i+1]
+        ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
+        #ul, ur = u[i] + 0.5* s_u[i], u[i+1] - 0.5* s_u[i+1]
         fl, fr = flux(xf,ul), flux(xf,ur)
         fn = numflux(xf, ul, ur, fl, fr)
         res[i] += fn
