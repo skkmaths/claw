@@ -117,12 +117,13 @@ def compute_error(u1,t):
     error_norm2 = np.sqrt(h*np.sum((u1-ue)**2))
     return error_norm1, error_norm2
 
-def compute_slopes():
+# This computes the slopes in each cells
+def compute_slopes(u1):
     s_u[:] = 0.0
     for i in range(1,nc+3):
-        vl, vr = u[i-1], u[i+1]
-        dvl = u[i] - vl
-        dvr = vr - u[i]
+        vl, vr = u1[i-1], u1[i+1]
+        dvl = u1[i] - vl
+        dvr = vr - u1[i]
         dvc = vr - vl
         s_u[i] =2.0* alpha * minmod(beta*dvl, 0.5*dvc, beta*dvr, Mdx2)
 
@@ -160,7 +161,7 @@ def apply_ssprk22(t,lam, u_old, u, ures ):
     #first stage
     ts  = t
     update_ghost(u)
-    compute_slopes()
+    compute_slopes(u)
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
     
@@ -168,7 +169,7 @@ def apply_ssprk22(t,lam, u_old, u, ures ):
     #second stage
     ts = t + dt
     update_ghost(u)
-    compute_slopes()
+    compute_slopes(u)  # if you pass u_old you get a better result here
     ures = compute_residual(ts, lam, u, ures)
     u = 0.5 * u_old + 0.5 *(u - lam * ures)
     
