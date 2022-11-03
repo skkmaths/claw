@@ -194,21 +194,20 @@ if args.plot_freq > 0:
     init_plot(ax2, ax2, ax3, v[2:nx+2,2:ny+2])
     wait = input("Press enter to continue ")
 
-
-
 #Update solution using RK time scheme
 def apply_ssprk22 ( t, dt, lam_x, lam_y, v_old, v, vres):
     #first stage
     ts  = t
+    update_ghost(v)
     vres = compute_residual(ts, lam_x, lam_y, v, vres)
     v = v - vres
-    update_ghost(v)
-    
+
     #second stage
     ts = t + dt
+    update_ghost(v)
     vres = compute_residual(ts, lam_x, lam_y, v, vres)
     v = 0.5 * v_old + 0.5 * (v - vres)
-    update_ghost(v)
+    
     return v
 # Residual for Lax-Wendroff scheme in fv conservative form
 def compute_residual_lw(t, dt, lam_x, lam_y, v, vres):
@@ -294,17 +293,16 @@ while t < Tf:
     # Loop over real cells (no ghost cell) and compute cell integral
     v_old = v
     if args.scheme == 'lw':
+        update_ghost(v)
         vres = compute_residual_lw(t, dt, lamx, lamy, v, vres)
         v = v - vres
-        update_ghost(v)
     elif args.scheme == 'rk2':
         v = apply_ssprk22 ( t, dt, lamx, lamy, v_old, v, vres)
     elif args.scheme == 'fo':
+        update_ghost(v)
         vres = compute_residual(t,lamx, lamy, v, vres)
         v = v - vres
-        update_ghost(v)
-    
-
+        
     t, it = t+dt, it+1
     if args.plot_freq > 0:
         print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
