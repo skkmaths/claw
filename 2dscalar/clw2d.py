@@ -74,7 +74,7 @@ vres = np.zeros((nx+4, ny+4))  # 2 ghost cells each sideresidual
 # Set initial condition by interpolation
 for i in range(nx+4):
     for j in range(ny+4):
-        x = xmin + (i-2)*dx+0.5 * dx     # transform gauss points to real cell
+        x = xmin + (i-2)*dx+0.5 * dx     
         y = ymin + (j-2)*dy + 0.5 * dy 
         val = initial_condition(x, y)
         v[i, j] = val
@@ -82,13 +82,11 @@ for i in range(nx+4):
 # index 2 to nx+1 and 2 to ny+1
 v0 = v[2:nx+2, 2:ny+2].copy()
 # it stores the coordinates of real cell centre
-xgrid = np.linspace(xmin+0.5*dx, xmax-0.5*dx, nx)
-ygrid = np.linspace(ymin+0.5*dy, ymax-0.5*dy, ny)
-x1, y1 = xgrid,  ygrid # to plot 1d graph
-ygrid, xgrid = np.meshgrid(ygrid, xgrid)
+xgrid1 = np.linspace(xmin+0.5*dx, xmax-0.5*dx, nx)
+ygrid1 = np.linspace(ymin+0.5*dy, ymax-0.5*dy, ny)
+ygrid, xgrid = np.meshgrid(ygrid1, xgrid1)
 
 # it stores the coordinates of vertices of the real cells
-
 Xgrid = np.linspace(xmin, xmax, nx+1)
 Ygrid = np.linspace(ymin, ymax, ny+1)
 Ygrid, Xgrid = np.meshgrid(Ygrid, Xgrid)
@@ -119,7 +117,7 @@ def lwflux(u,v,dx,dy,dt,ql,qr,qdl,qdr,qul,qur):
     flux = u * (ql + qr)/2.0  + 0.5 * dt * u * qt
     return flux
 
-def init_plot(ax1, ax2,ax3, u0):
+def init_plot(ax1, ax2, ax3, u0):
     '''
     sp = ax1.plot_surface(xgrid, ygrid, u0, cmap=cm.coolwarm,
                        linewidth=0, antialiased=False)
@@ -134,7 +132,8 @@ def init_plot(ax1, ax2,ax3, u0):
     ax2.set_ylabel('y')
     plt.colorbar(cp)
 
-    line1,line2 = ax3.plot(y1,u0[ny-1,0:ny],'ro', y1, u0[ny-1,0:ny],'b')
+    line1,line2 = ax3.plot(xgrid1, np.diag(u0),'ro', xgrid1, np.diag(u0),'b')
+    plt.legend(('exact','approx'))
     plt.grid(True);
     plt.draw()
     plt.pause(0.1)
@@ -162,7 +161,8 @@ def update_plot(fig, t, u1):
     ax2.set_ylabel('y')
     plt.colorbar(cp)
     ax3 = fig.add_subplot(122)
-    line1,line2 = ax3.plot(y1,u1[ny-1,0:ny],'ro', y1, v0[ny-1,0:ny],'b')
+    line1,line2 = ax3.plot(xgrid1, np.diag(v0),'ro', xgrid1, np.diag(u1),'b')
+    plt.legend(('exact','approx'))
     plt.grid(True);
     plt.draw()
     plt.pause(0.1)
@@ -185,13 +185,13 @@ def update_ghost(v1):
     v1[:,ny+3] = v1[:,3]
 
 if args.plot_freq > 0:
-    fig = plt.figure()
+    fig = plt.figure(figsize = (16, 7))
     #ax1 = fig.add_subplot(121,projection='3d')
     #ax2 = fig.add_subplot(122)
     ax2 = fig.add_subplot(121)
     ax3 = fig.add_subplot(122)
     #init_plot(ax1, ax2, v[1:nx+1,1:ny+1])
-    init_plot(ax2, ax2, ax3, v[2:nx+2,2:ny+2])
+    init_plot(ax2, ax2, ax3, v0)
     wait = input("Press enter to continue ")
 
 #Update solution using RK time scheme
@@ -308,7 +308,6 @@ while t < Tf:
         print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
         if it% args.plot_freq == 0:
             update_plot(fig, t, v[2:nx+2,2:ny+2])
-
 
 # Compute error norm: initial condition is exact solution
 if args.compute_error == 'yes':
