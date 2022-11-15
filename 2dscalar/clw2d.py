@@ -132,8 +132,10 @@ def init_plot(ax1, ax2, ax3, u0):
     ax2.set_ylabel('y')
     plt.colorbar(cp)
 
-    line1,line2 = ax3.plot(xgrid1, np.diag(u0),'ro', xgrid1, np.diag(u0),'b')
+    line1,line2 = ax3.plot(xgrid1, np.diag(u0),'ro-', xgrid1, np.diag(u0),'b')
     plt.legend(('exact','approx'))
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('v')
     plt.grid(True);
     plt.draw()
     plt.pause(0.1)
@@ -161,8 +163,10 @@ def update_plot(fig, t, u1):
     ax2.set_ylabel('y')
     plt.colorbar(cp)
     ax3 = fig.add_subplot(122)
-    line1,line2 = ax3.plot(xgrid1, np.diag(v0),'ro', xgrid1, np.diag(u1),'b')
+    line1,line2 = ax3.plot(xgrid1, np.diag(v0),'ro-', xgrid1, np.diag(u1),'b')
     plt.legend(('exact','approx'))
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('v')
     plt.grid(True);
     plt.draw()
     plt.pause(0.1)
