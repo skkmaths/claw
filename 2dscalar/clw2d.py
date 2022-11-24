@@ -43,6 +43,8 @@ if args.pde == 'linear':
     from linadv import *
 elif args.pde == 'varadv':
     from varadv import *
+elif args.pde == 'burger':
+    from burger import *
 else:
     print('PDE not implemented')
     exit()
@@ -284,14 +286,14 @@ def compute_residual(t,lam_x, lam_y, v, vres):
             vres[i,j+1] -= lamy*Gn
     return vres
 
-# Find dt once since cfl does not depend on u or time
-sx, sy = local_speed(xgrid, ygrid, v[2:nx+2,2:ny+2])
-# |sigma_x| + |sigma_y| = cfl
-#dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-if ( args.scheme == 'lw'):
-    dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-elif (args.scheme == 'fo' or args.scheme == 'rk2'):
-    dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
+if (args.pde == 'linadv' or args.pde == 'varadv'):
+    # Find dt once since cfl does not depend on u or time
+    sx, sy = local_speed(xgrid, ygrid, v[2:nx+2,2:ny+2])
+    #  |sigma_x| + |sigma_y| = cfl
+    if ( args.scheme == 'lw'):
+        dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
+    elif (args.scheme == 'fo' or args.scheme == 'rk2'):
+        dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 
 it, t = 0, 0.0
 Tf = args.Tf
