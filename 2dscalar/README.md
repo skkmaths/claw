@@ -42,6 +42,6 @@ Instruction to install visit in centos-lynux machine
 
 5. ./visit-install3_1_4 3.1.4 linux-x86_64-centos8 /usr/local/
 
-6  You can install to /usr/local/visit as well
+6.  You can install to /usr/local/visit as well
 
 7. The directory should contain the .tar.gz file 
