@@ -355,6 +355,12 @@ if args.compute_error == 'yes':
     li_err = np.abs(v[2:nx+2,2:ny+2]-v0).max()
     print('dx,dy,l1,l2,linf error =')# %10.4e %10.4e %10.4e %10.4e %10.4e' % 
     print(dx,dy,l1_err,l2_err,li_err)
+# print final data
+savesol(t,v)
+print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
+print('solution saved to .plt files')
+
+
 if args.plot_freq > 0: 
     plt.show()
 
