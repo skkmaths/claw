@@ -4,6 +4,7 @@ Solve scalar conservation law with periodic bc
 To get help, type
     python lwfr.py -h
 """
+import os, glob
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
@@ -108,9 +109,15 @@ def getfilename(file, fileid):
 # save solution to a file
 def savesol(t, var_u):
     global fileid
+    if not os.path.isdir("sol"): # creat a dir if not
+       os.makedirs("sol")
+    if fileid == 0: # remove the content of the folder
+        fs = glob.glob('./sol/*')
+        for f in fs:
+           os.remove(f)
     filename = "sol"
     filename = getfilename(filename, fileid)
-    file = open(filename,"a")
+    file = open("./sol/"+filename,"a")
     file.write('TITLE = "Linear advectino equation" \n')
     file.write('VARIABLES = "x", "y", "sol" \n')
     file.write("ZONE STRANDID=1, SOLUTIONTIME= "+ str(t)+ ", I= "+str(nx)+", J ="+str(ny)+", DATAPACKING=POINT \n")
