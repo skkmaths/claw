@@ -33,3 +33,19 @@ python clw2d.py -scheme lw -Tf 1.0 -pde linear -ic sin2pi
 sh runconvergence "20 40 80 160 320 640"
 python plotrate.py
 ```
+
+Solutions are saved to .plt files: use Visit to plot
+
+Instruction to install visit in centos-lynux machine
+
+1. Download the tar.gz file from https://wci.llnl.gov/simulation/computer-codes/visit/executables
+
+2. Downlad install script https://github.com/visit-dav/visit/releases/download/v3.1.4/visit-install3_1_4
+
+3. Rename the file to visit-install
+
+4. Chmod u+x visit-install
+
+5. visit-install 3.1.4 linux-x86_64-centos8 /usr/local/
+
+6. The directory should contain the .tar.gz file 
