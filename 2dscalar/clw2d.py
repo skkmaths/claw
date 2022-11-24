@@ -323,6 +323,8 @@ Tf = args.Tf
 #save initial data
 savesol(t, v)
 while t < Tf:
+    if (args.pde == 'burger'):
+        dt = cfl/(max_speed(v)/dx +max_speed(v)/dy)
     if t+dt > Tf:
         dt = Tf - t
     lamx, lamy = dt/dx,  dt/dy
