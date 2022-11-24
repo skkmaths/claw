@@ -29,7 +29,7 @@ parser.add_argument('-diss', type=int, choices=(1, 2), help='Dissipation type',
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
                     default=1)
-parser.add_argument('-ic', choices=('sin2pi', 'expo'),
+parser.add_argument('-ic', choices=('sin2pi', 'expo','hat'),
                     help='Initial condition', default='sin2pi')
 parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
                     default='no')
@@ -52,6 +52,8 @@ if args.ic == 'sin2pi':
     from sin2pi import *
 elif args.ic == 'expo':
     from expo import *
+elif args.ic == 'hat':
+    from hat import *
 else:
     print('Unknown initial condition')
     exit()
@@ -167,6 +169,7 @@ def update_plot(fig, t, u1):
     plt.legend(('exact','approx'))
     ax3.set_xlabel('x')
     ax3.set_ylabel('v')
+    ax3.set_title('Solution along the line x=y')
     plt.grid(True);
     plt.draw()
     plt.pause(0.1)
