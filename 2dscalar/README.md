@@ -1,5 +1,3 @@
-# This code is written for u_t+ a(x,y)u_x + b(x,y)u_y = 0, and u_t + (u^2/2)_x + (u^2/2)_y = 0
-
 # 2D Linear advection equation and Burgers equation
 
 Following schemes are implemented
