@@ -38,8 +38,8 @@ Instruction to install visit in centos-lynux machine
 
 3. Rename the file to visit-install
 
-4. Chmod u+x visit-install
+4. Chmod u+x visit-install3_1_4
 
-5. visit-install 3.1.4 linux-x86_64-centos8 /usr/local/
+5. ./visit-install3_1_4 3.1.4 linux-x86_64-centos8 /usr/local/
 
 6. The directory should contain the .tar.gz file 
