@@ -36,6 +36,8 @@ parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-compute_error', choices=('no', 'yes'),
                     help='Compute error norm', default='no')
+parser.add_argument('-save_freq', type=int, help='Frequency to save solution',
+                    default=0)
 args = parser.parse_args()
 
 # Select PDE
@@ -67,16 +69,14 @@ cfl = args.cfl
 beta = 2.0 # parameter in minmod
 nx = args.ncellx       # number of cells in the x-direction
 ny = args.ncelly       # number of cells in the y-direction
-
+global fileid
+fileid = 0
 dx = (xmax - xmin)/nx
 dy = (ymax - ymin)/ny
-
 # Allocate solution variables
 v = np.zeros((nx+4, ny+4))  # 2 ghost cells each side
 vres = np.zeros((nx+4, ny+4))  # 2 ghost cells each sideresidual
-
 # To store the cell averages only in real cells.
-
 # Set initial condition by interpolation
 for i in range(nx+4):
     for j in range(ny+4):
@@ -96,7 +96,32 @@ ygrid, xgrid = np.meshgrid(ygrid1, xgrid1)
 Xgrid = np.linspace(xmin, xmax, nx+1)
 Ygrid = np.linspace(ymin, ymax, ny+1)
 Ygrid, Xgrid = np.meshgrid(Ygrid, Xgrid)
-
+#------------To save solution--------------------------------------------
+def getfilename(file, fileid):
+    if fileid <10:
+        file = file +"00"+str(fileid)+".plt"
+    elif fileid <99:
+        file = file +"0"+str(fileid)+".plt"
+    else:
+        file =file+str(fileid)+".plt"
+    return file
+# save solution to a file
+def savesol(t, var_u):
+    global fileid
+    filename = "sol"
+    filename = getfilename(filename, fileid)
+    file = open(filename,"a")
+    file.write('TITLE = "Linear advectino equation" \n')
+    file.write('VARIABLES = "x", "y", "sol" \n')
+    file.write("ZONE STRANDID=1, SOLUTIONTIME= "+ str(t)+ ", I= "+str(nx)+", J ="+str(ny)+", DATAPACKING=POINT \n")
+    for j in range(2, ny+2):
+        for i in range(2, nx+2):
+            x = xmin + (i-2)*dx + 0.5*dx
+            y = ymin + (j-2)*dy + 0.5*dy
+            file.write( str(x) + ", " + str(y) +"," + str(var_u[i,j])+"\n")
+    file.close()
+    fileid = fileid + 1
+#-----------------------------------------------------------------------------
 def minmod(a,b,c):
     sa = np.sign(a)
     sb = np.sign(b)
@@ -137,7 +162,7 @@ def init_plot(ax1, ax2, ax3, u0):
     ax2.set_xlabel('x')
     ax2.set_ylabel('y')
     plt.colorbar(cp)
-
+    
     line1,line2 = ax3.plot(xgrid1, np.diag(u0),'ro-', xgrid1, np.diag(u0),'b')
     plt.legend(('exact','approx'))
     ax3.set_xlabel('x')
@@ -178,8 +203,6 @@ def update_plot(fig, t, u1):
     plt.draw()
     plt.pause(0.1)
     plt.clf()
-
-
 # Fill ghost cells using periodicity
 def update_ghost(v1):
     # left ghost cell
@@ -286,7 +309,7 @@ def compute_residual(t,lam_x, lam_y, v, vres):
             vres[i,j+1] -= lamy*Gn
     return vres
 
-if (args.pde == 'linadv' or args.pde == 'varadv'):
+if (args.pde == 'linear' or args.pde == 'varadv'):
     # Find dt once since cfl does not depend on u or time
     sx, sy = local_speed(xgrid, ygrid, v[2:nx+2,2:ny+2])
     #  |sigma_x| + |sigma_y| = cfl
@@ -297,6 +320,8 @@ if (args.pde == 'linadv' or args.pde == 'varadv'):
 
 it, t = 0, 0.0
 Tf = args.Tf
+#save initial data
+savesol(t, v)
 while t < Tf:
     if t+dt > Tf:
         dt = Tf - t
@@ -315,6 +340,9 @@ while t < Tf:
         v = v - vres
         
     t, it = t+dt, it+1
+    if args.save_freq > 0:
+        if it % args.save_freq == 0:
+            savesol(t, v)
     if args.plot_freq > 0:
         print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
         if it% args.plot_freq == 0:
