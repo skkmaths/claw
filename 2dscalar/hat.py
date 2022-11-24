@@ -12,6 +12,6 @@ def initial_condition(x,y):
        if (y >-0.15 and y < 0.15):   
            return 1.0
        else:
-        return 0.0
+           return 0.0
    else:
         return 0.0     
