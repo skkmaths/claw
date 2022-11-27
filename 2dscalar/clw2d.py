@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import argparse
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator
-
+import sys
 # Get arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('-pde', choices=('linear', 'varadv', 'burger', 'bucklev'),
@@ -111,7 +111,11 @@ def savesol(t, var_u):
     global fileid
     if not os.path.isdir("sol"): # creat a dir if not
        os.makedirs("sol")
+       print('Directory "sol" is created')
     if fileid == 0: # remove the content of the folder
+        print('The directory "sol" is going to be formated!')
+        if input('Do You Want To Continue? [y/n] ') != 'y':
+            sys.exit('Execution is treminated')
         fs = glob.glob('./sol/*')
         for f in fs:
            os.remove(f)
