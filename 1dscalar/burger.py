@@ -5,22 +5,24 @@ from scipy import optimize
 # f = u^2/2
 def flux(x,u):
     return 0.5*u**2
+def dxf(x,u):
+    return u
 
 # rusanov flux
-def rusanov(x, ul, ur, fl, fr):
+def rusanov(x, ul, ur, fl, fr,lamda):
     # lam = max |f'(u)| for u between [ual, uar]
     a = np.abs([ul, ur]).max()
     return 0.5*(fl + fr) - 0.5*a*(ur - ul)
 
-def godunov(x, ul, ur, fl, fr):
+def godunov(x, ul, ur, fl, fr, lamda):
     return max(flux(x,max(ul,0.0)),flux(x,min(ur,0.0)) )
 
 # Max speed based on cell average values
 def max_speed(u):
     return np.abs(u).max()
 # numflux for Nessyahu Tadmore scheme
-def nt(x,ul, ur, fl, fr, dul, dur, lam):
-    return 0.5*(fl+fr)-(0.5/lam)*(ur-ul) + (0.25/lam)*(dul+dur)
+def nt(x, ul, ur, fl, fr, lamda ):
+    return  0.5*(fl+fr) -0.5*( ur-ul)/lamda
 
 # works only for smooth solution
 def uexact(x, t, u0):
