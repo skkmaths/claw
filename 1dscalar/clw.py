@@ -12,9 +12,6 @@ from ic import *
 parser = argparse.ArgumentParser()
 parser.add_argument('-nc', type=int, help='Number of cells', default=100)
 parser.add_argument('-cfl', type=float, help='CFL number', default=0.9)
-parser.add_argument('-scheme',
-                    choices=('C','LF','GLF','LLF','LW','ROE','EROE','GOD'),
-                    help='Scheme', default='LF')
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-ic',
                     choices=('smooth','shock','rare1','hat','rare','expo','slope'),
@@ -25,7 +22,7 @@ parser.add_argument('-pde', choices=('linear','varadv','burger','bucklev','conca
                                      'burger_adv',
                                      'oreqn1','oreqn2','oreqn3','oreqn4'),
                     help='PDE', default='linear')
-parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','godunov','upwind'), default='rusanov')
+parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','godunov','upwind','nt'), default='rusanov')
 parser.add_argument('-compute_error', choices=('no','yes'),
                     help='Compute error norm', default='no')
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
@@ -56,6 +53,8 @@ elif args.numflux == 'godunov':
     numflux = godunov
 elif args.numflux == 'upwind':
     numflux = upwind
+elif args.numflux == 'nt':
+    numflux = nt
 
 # constants
 Tf    = args.Tf
@@ -63,7 +62,7 @@ cfl   = args.cfl
 uinit = args.ic
 nc    = args.nc
 alpha = args.alpha  # parameter in the slopes
-beta = 2.0 # parameter in minmod
+beta = 1.0 # parameter in minmod
 time_scheme = args.time_scheme
 
 if args.ic == 'smooth':
@@ -85,9 +84,19 @@ u = np.zeros(nc+4)    # with 4 ghost cells, 2 each sides
 u[2:nc+2] = uinit(x)   # initialize solution variable
 res = np.zeros(nc+4)
 s_u = np.zeros(nc+4)
+'''
 def minmod(a,b,c,Mdx2):
     if np.abs(a) < Mdx2:
         return a
+    sa = np.sign(a)
+    sb = np.sign(b)
+    sc = np.sign(c)
+    if sa==sb and sb==sc:
+        return sa * np.abs([a,b,c]).min()
+    else:
+        return 0.0
+'''
+def minmod(a,b,c):
     sa = np.sign(a)
     sb = np.sign(b)
     sc = np.sign(c)
@@ -123,7 +132,7 @@ def reconstruct(ujm1, uj, ujp1):
     elif args.limit == 'mmod':
         dj = 2.0* alpha * minmod( beta*(uj-ujm1), \
                                 0.5*(ujp1-ujm1), \
-                                beta*(ujp1-uj), Mdx2 )
+                                beta*(ujp1-uj))
         ul = uj + 0.5 * dj
         return ul
     else:
@@ -168,9 +177,21 @@ def compute_residual(ts, lam, u, res):
     res[:] = 0.0    
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
-        ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
-        fl, fr = flux(xf,ul), flux(xf,ur)
-        fn = numflux(xf, ul, ur, fl, fr)
+        if args.numflux == 'nt':
+            ul = u[i]
+            ur = u[i+1]
+            sl = 2.0* alpha * minmod( beta*(u[i]-u[i-1]), \
+                                0.5*(u[i+1]-u[i-1]), \
+                                beta*(u[i+1]-u[i]))
+            sr = 2.0* alpha * minmod( beta*(u[i+1]-u[i]), \
+                                0.5*(u[i+2]-u[i]), \
+                                beta*(u[i+2]-u[i+1]))
+            fl = flux(xf, u[i]-0.5 * lam *dxf(xf, ul)* sl ) + 0.5 * sl/lam
+            fr = flux(xf, u[i+1]-0.5 * lam * dxf(xf, ur)* sr) + 0.5 * sr/lam
+        else:
+            ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
+            fl, fr = flux(xf,ul), flux(xf,ur)
+        fn = numflux(xf, ul, ur, fl, fr, lam)
         res[i] += fn
         res[i+1] -= fn
     return res
