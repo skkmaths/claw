@@ -10,7 +10,8 @@ def dxf(x,u):
 def rusanov(x, ul, ur, fl, fr,lamda):
     # lam = max |f'(u)| for u between [ual, uar]
     return 0.5*(fl + fr) - 0.5*(ur - ul)
-
+def lf(x, ul, ur, fl, fr,lamda ):
+    return 0.5*(fl + fr) - 0.5*(ur - ul)/lamda
 def godunov(x, ul, ur, fl, fr, lamda):
     return ul
 # Max speed based on cell average values
@@ -26,4 +27,4 @@ def nt(x, ul, ur, fl, fr, lamda ):
 
     return  0.5*(fl+fr)-0.5*( ur-ul)/lamda
 
-numfluxes = ['rusanov','godunov', 'nt']
+numfluxes = ['rusanov','godunov', 'nt', 'lf']

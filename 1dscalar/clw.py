@@ -22,7 +22,7 @@ parser.add_argument('-pde', choices=('linear','varadv','burger','bucklev','conca
                                      'burger_adv',
                                      'oreqn1','oreqn2','oreqn3','oreqn4'),
                     help='PDE', default='linear')
-parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','godunov','upwind','nt'), default='rusanov')
+parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','godunov','upwind','nt', 'lf'), default='rusanov')
 parser.add_argument('-compute_error', choices=('no','yes'),
                     help='Compute error norm', default='no')
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
@@ -55,7 +55,8 @@ elif args.numflux == 'upwind':
     numflux = upwind
 elif args.numflux == 'nt':
     numflux = nt
-
+elif args.numflux == 'lf':
+    numflux = lf
 # constants
 Tf    = args.Tf
 cfl   = args.cfl
