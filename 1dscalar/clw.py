@@ -14,15 +14,15 @@ parser.add_argument('-nc', type=int, help='Number of cells', default=100)
 parser.add_argument('-cfl', type=float, help='CFL number', default=0.9)
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-ic',
-                    choices=('smooth','shock','rare1','hat','rare','expo','slope'),
+                    choices=('smooth','shock','dflu1','rare1','hat','rare','expo','slope'),
                     help='Initial condition', default='smooth')
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 
-parser.add_argument('-pde', choices=('linear','varadv','burger','bucklev','concave',
+parser.add_argument('-pde', choices=('linear','dflux','varadv','burger','bucklev','concave',
                                      'burger_adv',
                                      'oreqn1','oreqn2','oreqn3','oreqn4'),
                     help='PDE', default='linear')
-parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','godunov','upwind','nt', 'lf'), default='rusanov')
+parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','dflu','godunov','upwind','nt', 'lxf'), default='rusanov')
 parser.add_argument('-compute_error', choices=('no','yes'),
                     help='Compute error norm', default='no')
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
@@ -42,6 +42,8 @@ elif args.pde == 'linear':
     from linear import *
 elif args.pde == 'concave':
     from concave import *
+elif args.pde == 'dflux':
+    from dflux import *
 
 # Select Numerical Flux
 if args.numflux not in numfluxes:
@@ -55,8 +57,10 @@ elif args.numflux == 'upwind':
     numflux = upwind
 elif args.numflux == 'nt':
     numflux = nt
-elif args.numflux == 'lf':
-    numflux = lf
+elif args.numflux == 'lxf':
+    numflux = lxf
+elif args.numflux == 'dflu':
+    numflux = dflu
 # constants
 Tf    = args.Tf
 cfl   = args.cfl
@@ -72,8 +76,10 @@ elif args.ic == 'shock':
     uinit = shock
 elif args.ic == 'hat':
     uinit = hat
+elif args.ic == 'dflu1':
+    uinit = dflu1
 
-xmin, xmax = 0.0, 1.0
+xmin, xmax = -4.0, 4.0
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
 Mdx2 = args.tvbM*h**2.0
@@ -115,6 +121,7 @@ if args.plot_freq >0:
     ax.set_xlabel('x'); ax.set_ylabel('u')
     plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
     plt.legend(('Numerical','Exact'))
+    plt.ylim(0.3,0.7)
     plt.grid(True); plt.draw(); plt.pause(0.1)
     wait = input("Press enter to continue ")
 
@@ -192,7 +199,7 @@ def compute_residual(ts, lam, u, res):
         else:
             ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
             fl, fr = flux(xf,ul), flux(xf,ur)
-        fn = numflux(xf, ul, ur, fl, fr, lam)
+        fn = numflux(xf, ul, ur, fl, fr, lam, h)
         res[i] += fn
         res[i+1] -= fn
     return res
@@ -205,6 +212,8 @@ while t < Tf:
         dt= cfl * h
     elif args.pde == 'burger':
         dt= cfl * h /max_speed(u)
+    elif args.pde == 'dflux':
+        dt= cfl * h /M
     else:
         print('dt is not set')
         exit()
