@@ -5,6 +5,12 @@ import numpy as np
 def dflu1(x):
     return 0.5
 
+def dflu2(x):
+    if x < 0.0:
+        return 0.9
+    else:
+        return 0.2
+dflu2 = np.vectorize(dflu2)
 def smooth(x):
     return np.sin(2.0*np.pi*x)
     #return 0.2*np.sin(x)

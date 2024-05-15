@@ -14,7 +14,7 @@ parser.add_argument('-nc', type=int, help='Number of cells', default=100)
 parser.add_argument('-cfl', type=float, help='CFL number', default=0.9)
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-ic',
-                    choices=('smooth','shock','dflu1','rare1','hat','rare','expo','slope'),
+                    choices=('smooth','shock','dflu1','dflu2','rare1','hat','rare','expo','slope'),
                     help='Initial condition', default='smooth')
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 
@@ -30,6 +30,9 @@ parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
 parser.add_argument('-time_scheme', default = 'euler',
                     help = 'Chosen by degree if unspecified',
                     choices = ('euler','ssprk22'))
+parser.add_argument('-bc', default = 'periodic',
+                    help = 'Chose the boundary condition',
+                    choices = ('periodic','dirichlet'))
 parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
                     default='no')
 parser.add_argument('-alpha', type=float, help='Slope parameter', default=0.5)
@@ -78,8 +81,9 @@ elif args.ic == 'hat':
     uinit = hat
 elif args.ic == 'dflu1':
     uinit = dflu1
+elif args.ic == 'dflu2':
+    uinit = dflu2
 
-xmin, xmax = -4.0, 4.0
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
 Mdx2 = args.tvbM*h**2.0
@@ -121,7 +125,7 @@ if args.plot_freq >0:
     ax.set_xlabel('x'); ax.set_ylabel('u')
     plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
     plt.legend(('Numerical','Exact'))
-    plt.ylim(0.3,0.7)
+    #plt.ylim(0.3,0.7)
     plt.grid(True); plt.draw(); plt.pause(0.1)
     wait = input("Press enter to continue ")
 
@@ -147,12 +151,23 @@ def reconstruct(ujm1, uj, ujp1):
         print('limit type not defined')
         exit()
 def update_ghost(u1):
-    # left ghost cell
-    u1[0] = u1[nc]
-    u1[1] = u1[nc+1]
+    if args.bc == 'periodic':
+        # left ghost cell
+        u1[0] = u1[nc]
+        u1[1] = u1[nc+1]
 
-    u1[nc+3] = u1[3]
-    u1[nc+2] = u1[2]
+        u1[nc+3] = u1[3]
+        u1[nc+2] = u1[2]
+    elif args.bc == 'dirichlet':
+        # left ghost cell
+        u1[0] = uinit(x[0])
+        u1[1] = uinit(x[0])
+
+        u1[nc+3] = uinit(x[nc-1])
+        u1[nc+2] = uinit(x[nc-1])
+    else:
+        print('unknown boundary condition')
+        exit()
     
 # First order Euler forward step
 def apply_euler(t,lam, u_old, u, ures ):
@@ -161,8 +176,6 @@ def apply_euler(t,lam, u_old, u, ures ):
     update_ghost(u)
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
-    
-    
     return u
 
 def apply_ssprk22(t,lam, u_old, u, ures ):
@@ -171,41 +184,26 @@ def apply_ssprk22(t,lam, u_old, u, ures ):
     update_ghost(u)
     ures = compute_residual(ts, lam, u, ures)
     u = u - lam * ures
-    
-
     #second stage
     ts = t + dt
     update_ghost(u)
     ures = compute_residual(ts, lam, u, ures)
     u = 0.5 * u_old + 0.5 *(u - lam * ures)
-    
     return u
 
 def compute_residual(ts, lam, u, res):
     res[:] = 0.0    
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
-        if args.numflux == 'nt':
-            ul = u[i]
-            ur = u[i+1]
-            sl = 2.0* alpha * minmod( beta*(u[i]-u[i-1]), \
-                                0.5*(u[i+1]-u[i-1]), \
-                                beta*(u[i+1]-u[i]))
-            sr = 2.0* alpha * minmod( beta*(u[i+1]-u[i]), \
-                                0.5*(u[i+2]-u[i]), \
-                                beta*(u[i+2]-u[i+1]))
-            fl = flux(xf, u[i]-0.5 * lam *dxf(xf, ul)* sl ) + 0.5 * sl/lam
-            fr = flux(xf, u[i+1]-0.5 * lam * dxf(xf, ur)* sr) + 0.5 * sr/lam
-        else:
-            ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
-            fl, fr = flux(xf,ul), flux(xf,ur)
-        fn = numflux(xf, ul, ur, fl, fr, lam, h)
+        ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
+        sl = 2.0 * (ul-u[i])
+        sr = 2.0 * (u[i+1]-ur)
+        fl, fr = flux(xf,ul), flux(xf,ur)
+        fn = numflux(xf, ul, ur, fl, fr, lam, h, sl, sr)
         res[i] += fn
         res[i+1] -= fn
     return res
-
 time_schemes = {'euler': apply_euler, 'ssprk22' : apply_ssprk22 }
-
 t, it = 0.0, 0
 while t < Tf:
     if args.pde == 'linear':
@@ -217,15 +215,12 @@ while t < Tf:
     else:
         print('dt is not set')
         exit()
-        
     lam = dt/h
     if t+dt > Tf:
         dt = Tf - t
         lam = dt/h
-    
     u_old = u    
     u = time_schemes[time_scheme](t, lam, u_old, u, res)  # update solution
-    
     t += dt; it += 1 # update time step
     if args.plot_freq >0:
         ue = uexact(x, t , uinit)
@@ -237,7 +232,6 @@ while t < Tf:
 fname = 'sol.txt'
 np.savetxt(fname, np.column_stack([x, u[2:nc+2]]))
 print('Saved file ', fname)
-
 
 if args.compute_error == 'yes':
     er1, er2 = compute_error(u[2:nc+2],t)

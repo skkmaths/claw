@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 
 
 
-uw = np.loadtxt("upwind.txt")
-gd = np.loadtxt("godnov.txt")
-
+lxf = np.loadtxt("lxf.txt")
+dflu = np.loadtxt("dflu.txt")
+nt   = np.loadtxt("nt.txt")
 
 
 #ue  = np.loadtxt("exact.txt")
@@ -17,12 +17,12 @@ gd = np.loadtxt("godnov.txt")
 fig = plt.figure()
 #plt.plot(ue[:,0],ue[:,1],label='Exact', c='k')
 #plt.plot([:,0],initial[:,1],'-',fillstyle='none',label='I.C.')
-plt.plot(uw[:,0],uw[:,1],'-',fillstyle='none',label='UW',c='b')
-plt.plot(gd[:,0],gd[:,1],'--',fillstyle='none',label='GD',c='r')
-#plt.plot(nt1[:,0],nt1[:,1],'--',fillstyle='none',label='NT(alpha=1)',c='c')
+plt.plot(lxf[:,0],lxf[:,1],'-',fillstyle='none',label='lxf',c='b')
+plt.plot(dflu[:,0],dflu[:,1],'--',fillstyle='none',label='dflu',c='r')
+plt.plot(nt[:,0], nt[:,1],'--',fillstyle='none',label='NT',c='c')
 #plt.plot(fv[:,0],fv[:,1],'--',fillstyle='none',label='First-order', c='g')
 #plt.plot(ex[:,0],ex[:,1],'-',fillstyle='none',label='Ref.',c='k')
-plt.xlim(-1,1)
+plt.xlim(-4,4)
 plt.xlabel('x')
 plt.ylabel('u')
 #sfig.legend(loc=15)
@@ -34,4 +34,4 @@ plt.legend();
 plt.grid(True, linestyle = '--')
 #plt.axis('equal')
 #plt.yticks(fontsize=12)
-plt.savefig('concave.pdf')
+plt.savefig('u.pdf')
