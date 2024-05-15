@@ -228,9 +228,9 @@ while t < Tf:
         line2.set_ydata(ue)
         plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
         plt.draw(); plt.pause(0.1)
-
+ue = uexact(x,t, uinit)
 fname = 'sol.txt'
-np.savetxt(fname, np.column_stack([x, u[2:nc+2]]))
+np.savetxt(fname, np.column_stack([x, u[2:nc+2], ue]))
 print('Saved file ', fname)
 
 if args.compute_error == 'yes':

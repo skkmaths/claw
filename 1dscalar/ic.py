@@ -11,6 +11,7 @@ def dflu2(x):
     else:
         return 0.2
 dflu2 = np.vectorize(dflu2)
+
 def smooth(x):
     return np.sin(2.0*np.pi*x)
     #return 0.2*np.sin(x)
@@ -37,9 +38,9 @@ def smooth_c(x):
 def shock(x):
     
     if x < 0.0:
-        u = 0.0
+        u = 1.0
     else:
-        u = 0.5
+        u = 0.0
     return u
 shock = np.vectorize(shock)
 
