@@ -2,6 +2,8 @@ import numpy as np
 
 # Set intial condition for burger's equation
 
+def dflu1(x):
+    return 0.5
 
 def smooth(x):
     return np.sin(2.0*np.pi*x)
