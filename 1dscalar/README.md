@@ -13,4 +13,5 @@ python clw.py -pde linear -ic smooth -nc 50 -time_scheme ssprk22 -limit mmod -Tf
 sh runconvergence "20 40 80 160 320 640"
 python plotrate.py
 ```
-Order of accuracy test works for both linear and advection equation with periodic bc
+Order of accuracy test works for both advection and burger equation with periodic bc
+For discontinuous flux use the -pde dflux
