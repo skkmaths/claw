@@ -83,7 +83,8 @@ elif args.ic == 'dflu1':
     uinit = dflu1
 elif args.ic == 'dflu2':
     uinit = dflu2
-
+elif args.ic == 'rare1':
+    uinit = rare1
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
 Mdx2 = args.tvbM*h**2.0
@@ -155,14 +156,12 @@ def update_ghost(u1):
         # left ghost cell
         u1[0] = u1[nc]
         u1[1] = u1[nc+1]
-
         u1[nc+3] = u1[3]
         u1[nc+2] = u1[2]
     elif args.bc == 'dirichlet':
         # left ghost cell
         u1[0] = uinit(x[0])
         u1[1] = uinit(x[0])
-
         u1[nc+3] = uinit(x[nc-1])
         u1[nc+2] = uinit(x[nc-1])
     else:

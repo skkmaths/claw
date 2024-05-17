@@ -13,9 +13,7 @@ def dflu2(x):
 dflu2 = np.vectorize(dflu2)
 
 def smooth(x):
-    return np.sin(2.0*np.pi*x)
-    #return 0.2*np.sin(x)
-    #return 0.5+0.4*np.sin(np.pi*x)
+    return np.sin(np.pi*x)
     
 def composite(x):
     f = np.empty_like(x)
@@ -45,13 +43,13 @@ def shock(x):
 shock = np.vectorize(shock)
 
 def hat(x):
-    u = np.zeros(len(x))
-    for i in range(len(x)):
-        if (x[i] > 0.25 and x[i] <0.75):
-            u[i] = 1.0
-        else:
-            u[i] = 0.0
+    if (x> -0.75 and x <-0.25):
+        u = 1.0
+    else:
+        u = 0.0
     return u
+hat = np.vectorize(hat)
+
 def buckley1(x):
     if x>= (-1.0/2.0) and x <= 0:
         return 1.0
@@ -61,10 +59,10 @@ buckley1 = np.vectorize(buckley1)
 
 # Rarefaction without sonic point
 def rare1(x):
-    if x < 0.25:
-        u = 0.5
+    if x < 0.:
+        u = -1
     else:
-        u = 2.0
+        u = 1
     return u
 rare1 = np.vectorize(rare1)
 
