@@ -22,7 +22,7 @@ parser.add_argument('-pde', choices=('linear','dflux','varadv','burger','bucklev
                                      'burger_adv',
                                      'oreqn1','oreqn2','oreqn3','oreqn4'),
                     help='PDE', default='linear')
-parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','dflu','godunov','upwind','nt', 'lxf'), default='rusanov')
+parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','muscl','dflu','godunov','upwind','nt', 'lxf'), default='rusanov')
 parser.add_argument('-compute_error', choices=('no','yes'),
                     help='Compute error norm', default='no')
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
@@ -174,6 +174,7 @@ def compute_slopes(slope1, u1):
                                 beta*(u1[i+1]-u1[i]))
     return slope1
 
+
 def update_lf(lam, u ):
     if args.pde == 'burger':
         f = 0.5*u*u
@@ -183,6 +184,18 @@ def update_lf(lam, u ):
     for i in range(2, len(u)-2):
         unew[i] = 0.5*(u[i-1]+u[i+1]) - 0.5*lam*(f[i+1] - f[i-1])
     return unew
+def update_muscl(lam, slope, u):
+    slope = compute_slopes(slope,u)
+    unew = np.empty_like(u)
+    for i in range(2, len(u)-2):
+        uiphl = u[i] + 0.5 *slope[i]
+        uiphr = u[i+1] - 0.5 *slope[i+1]
+        uimhl = u[i-1] + 0.5 *slope[i-1]
+        uimhr = u[i] - 0.5 *slope[i]
+        Fiph  = max(flux(0,max(uiphl,0.0)),flux(0,min(uiphr,0.0)) )
+        Fimh  = max(flux(0,max(uimhl,0.0)),flux(0,min(uimhr,0.0)) )
+        unew[i] = u[i] - lam*(Fiph -Fimh)
+    return unew
 def update_nt(lam, slope, u):
     slope = compute_slopes(slope,u)
     unew = np.empty_like(u)
@@ -191,7 +204,16 @@ def update_nt(lam, slope, u):
                 -( flux(x[1], u[i+1] -dxf(x[1], u[i+1])*slope[i+1]*lam/2.0) - \
                        flux(x[1], u[i-1] -dxf(x[1], u[i-1])*slope[i-1]*lam/2.0  ))*lam/2.0
     return unew
+def update_ssprk2(lam, slope, uold, u):
+    #stage 1
+    u = update_ghost(u)
+    u = update_muscl(lam, slope, u)
+    #stage 2
     
+    u = update_ghost(u)
+    u = update_muscl(lam, slope, u)
+    u = 0.5 * uold + 0.5 * u
+    return u
 t, it = 0.0, 0
 while t < Tf:
     if args.pde == 'linear':
@@ -212,6 +234,9 @@ while t < Tf:
         u = update_lf(lam, u)
     elif args.numflux == 'nt':
         u = update_nt(lam, slope, u)
+    elif args.numflux == 'muscl':
+        u_old = u
+        u = update_ssprk2(lam, slope, u_old, u)
     else:
         print('unknown flux')
         exit()
