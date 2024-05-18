@@ -14,7 +14,7 @@ parser.add_argument('-nc', type=int, help='Number of cells', default=100)
 parser.add_argument('-cfl', type=float, help='CFL number', default=0.9)
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-ic',
-                    choices=('smooth','shock','dflu1','dflu2','rare1','hat','rare','expo','slope'),
+                    choices=('smooth','shock','dflu1','dflu2','rare1','composite','hat','rare','expo','slope'),
                     help='Initial condition', default='smooth')
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 
@@ -85,6 +85,9 @@ elif args.ic == 'dflu2':
     uinit = dflu2
 elif args.ic == 'rare1':
     uinit = rare1
+elif args.ic == 'composite':
+    uinit = composite
+
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
 Mdx2 = args.tvbM*h**2.0
@@ -195,9 +198,18 @@ def compute_residual(ts, lam, u, res):
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
         ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
-        sl = 2.0 * (ul-u[i])
-        sr = 2.0 * (u[i+1]-ur)
+        sl = 2.0* alpha * minmod( beta*(u[i]-u[i-1]), \
+                                0.5*(u[i+1]-u[i-1]), \
+                                beta*(u[i+1]-u[i]))
+        sr = 2.0* alpha * minmod( beta*(u[i+1]-u[i]), \
+                                0.5*(u[i+2]-u[i]), \
+                                beta*(u[i+2]-u[i+1]))
+        #sl = 2.0 * (ul-u[i])
+        #sr = 2.0 * (u[i+1]-ur)
         fl, fr = flux(xf,ul), flux(xf,ur)
+        if args.numflux == 'nt':
+            ul = u[i]
+            ur = u[i+1]
         fn = numflux(xf, ul, ur, fl, fr, lam, h, sl, sr)
         res[i] += fn
         res[i+1] -= fn
@@ -227,9 +239,17 @@ while t < Tf:
         line2.set_ydata(ue)
         plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
         plt.draw(); plt.pause(0.1)
-ue = uexact(x,t, uinit)
+
+# save exact solution at final time
+xe = np.linspace(xmin, xmax, 10000)
+ue = uexact(xe,0, uinit)
+fname = 'exact.txt'
+np.savetxt(fname, np.column_stack([xe, ue]))
+print('Saved file ', fname)
+
+# save final time solution to a file
 fname = 'sol.txt'
-np.savetxt(fname, np.column_stack([x, u[2:nc+2], ue]))
+np.savetxt(fname, np.column_stack([x, u[2:nc+2]]))
 print('Saved file ', fname)
 
 if args.compute_error == 'yes':

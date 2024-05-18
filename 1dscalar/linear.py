@@ -1,6 +1,6 @@
 import numpy as np
 #set domain
-xmin, xmax = 0, 1.0
+xmin, xmax = -1.0, 1.0
 # f = u
 def flux(x,u):
     return u
