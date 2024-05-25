@@ -25,10 +25,10 @@ def uexact(x, t, u0):
 
 #NT numerical flux 
 def nt(x, ul, ur, fl, fr, lamda,h, sl, sr ):
-    ui   = ul-sl/2.0
-    uip1 = ur + sr/2.0
-    Fl = flux(x, ui-0.5 * lamda *dxf(x, ui)* sl ) + 0.5 * sl/lamda
-    Fr = flux(x, uip1-0.5 * lamda * dxf(x, uip1)* sr) + 0.5 * sr/lamda
-    return  0.5*(Fl+Fr)-0.5*( uip1-ui )/lamda
+    #ui   = ul-sl/2.0
+    #uip1 = ur + sr/2.0
+    Fl = flux(x, ul-lamda *dxf(x, ul)* sl/4.0 ) + sl/(lamda*4.0)
+    Fr = flux(x, ur-lamda * dxf(x, ur)* sr/4.0) + sr/(lamda * 4.0)
+    return  0.5*(Fl+Fr)-0.5*( ur-ul )/lamda
 
 numfluxes = ['rusanov','godunov', 'nt', 'lxf']

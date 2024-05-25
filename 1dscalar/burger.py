@@ -30,14 +30,14 @@ def max_speed(u):
 def nt(x, ul, ur, fl, fr, lamda,h, sl, sr ):
     #ui   = ul-sl/2.0
     #uip1 = ur + sr/2.0
-    Fl = flux(x, ul-0.5   * lamda *dxf(x, ul)* sl ) + 0.5 * sl/lamda
-    Fr = flux(x, ur-0.5  *  lamda * dxf(x, ur)* sr) + 0.5 * sr/lamda
+    Fl = flux(x, ul-lamda *dxf(x, ul)* sl/4.0 ) + sl/(lamda*4.0)
+    Fr = flux(x, ur-lamda * dxf(x, ur)* sr/4.0) + sr/(lamda * 4.0)
     return  0.5*(Fl+Fr)-0.5*( ur-ul )/lamda
 
 # works only for smooth solution
 
 # exact solution of rare1 initial condition
-
+'''
 
 def uexact(x,t,u0):
     if x < 0.5*t:
@@ -46,7 +46,7 @@ def uexact(x,t,u0):
         return 0.0
 uexact = np.vectorize(uexact)
 
-'''
+
 def uexact(x,t,u0):
     if x < -t:
         return -1.0
@@ -55,6 +55,7 @@ def uexact(x,t,u0):
     else:
         return x/t
 uexact = np.vectorize(uexact)
+'''
 def uexact(x, t, u0):
 
     ue = np.zeros(np.size(x))
@@ -64,5 +65,5 @@ def uexact(x, t, u0):
         seed_value = u0(xx)
         ue[i] = optimize.fsolve(imp_eqn, seed_value)
     return ue
-'''
+
 numfluxes = ['rusanov','nt', 'lxf', 'godunov', 'muscl']

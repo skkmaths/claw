@@ -14,11 +14,11 @@ parser.add_argument('-nc', type=int, help='Number of cells', default=100)
 parser.add_argument('-cfl', type=float, help='CFL number', default=0.9)
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-ic',
-                    choices=('smooth','shock','dflu1','dflu2','rare1','composite','hat','rare','expo','slope'),
+                    choices=('smooth','shock','dflu1','dflu2','rare1','composite','hat','buckley1','rare','expo','slope'),
                     help='Initial condition', default='smooth')
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 
-parser.add_argument('-pde', choices=('linear','dflux','varadv','burger','bucklev','concave',
+parser.add_argument('-pde', choices=('linear','dflux','varadv','burger','buckley','concave',
                                      'burger_adv',
                                      'oreqn1','oreqn2','oreqn3','oreqn4'),
                     help='PDE', default='linear')
@@ -47,6 +47,8 @@ elif args.pde == 'concave':
     from concave import *
 elif args.pde == 'dflux':
     from dflux import *
+elif args.pde == 'buckley':
+    from buckley import *
 
 # Select Numerical Flux
 if args.numflux not in numfluxes:
@@ -64,6 +66,8 @@ elif args.numflux == 'lxf':
     numflux = lxf
 elif args.numflux == 'dflu':
     numflux = dflu
+elif args.numflux == 'buckley1':
+    numflux = buckley1
 # constants
 Tf    = args.Tf
 cfl   = args.cfl
@@ -87,7 +91,8 @@ elif args.ic == 'rare1':
     uinit = rare1
 elif args.ic == 'composite':
     uinit = composite
-
+elif args.ic == 'buckley1':
+    uinit = buckley1
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
 Mdx2 = args.tvbM*h**2.0
@@ -198,14 +203,30 @@ def compute_residual(ts, lam, u, res):
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
         ul, ur  = reconstruct(u[i-1], u[i], u[i+1]), reconstruct(u[i+2], u[i+1], u[i])
-        sl = 2.0* alpha * minmod( beta*(u[i]-u[i-1]), \
-                                0.5*(u[i+1]-u[i-1]), \
-                                beta*(u[i+1]-u[i]))
-        sr = 2.0* alpha * minmod( beta*(u[i+1]-u[i]), \
-                                0.5*(u[i+2]-u[i]), \
-                                beta*(u[i+2]-u[i+1]))
-        #sl = 2.0 * (ul-u[i])
-        #sr = 2.0 * (u[i+1]-ur)
+        #compute slopes for NT scheme written in non-stagered form
+        if args.numflux == 'nt':
+            uim1 = u[i-1]
+            ui   = u[i]
+            uip1 = u[i+1]
+            uip2 = u[i+2]
+            if ( i ==1):
+                uim2 = u[-5]
+            else:
+                uim2 = u[i-2]
+            if i== nc+1:
+                uip3 = u[4]
+            else: 
+                uip3 = u[i+3]
+
+            sl = 2.0* alpha * minmod( beta*(uip2-ui), \
+                                0.5*(uip2-uim2), \
+                                beta*(ui-uim2))
+            sr = 2.0* alpha * minmod( beta*(uip3-uip1), \
+                                0.5*(uip3-uim1), \
+                                beta*(uip1-uim1))
+        else: # dummy variables
+            sl = 2.0 * (ul-u[i])
+            sr = 2.0 * (u[i+1]-ur)
         fl, fr = flux(xf,ul), flux(xf,ur)
         if args.numflux == 'nt':
             ul = u[i]
@@ -222,6 +243,8 @@ while t < Tf:
     elif args.pde == 'burger':
         dt= cfl * h /max_speed(u)
     elif args.pde == 'dflux':
+        dt= cfl * h /M
+    elif args.pde == 'buckley':
         dt= cfl * h /M
     else:
         print('dt is not set')

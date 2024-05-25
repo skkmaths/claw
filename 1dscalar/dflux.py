@@ -52,13 +52,11 @@ def lxf(x, ul, ur, fl, fr, lamda, h, sl, sr):
 
 # numflux for Nessyahu Tadmore scheme
 def nt(x, ul, ur, fl, fr, lamda, h, sl, sr ):
-    ui   = ul-sl/2.0
-    uip1 = ur + sr/2.0
     xcl = x -0.5*h
     xcr = x + 0.5*h
-    Fl = flux(xcl, ui-0.5 * lamda * dxflux(xcl, ui)* sl ) + 0.5 * sl/lamda
-    Fr = flux(xcr, uip1-0.5 * lamda * dxflux(xcr, uip1)* sr) + 0.5 * sr/lamda
-    return  0.5*(Fl+Fr)-0.5*( uip1-ui )/lamda
+    Fl = flux(xcl, ul-lamda *dxflux(xcl, ul)* sl/4.0 ) + sl/(lamda*4.0)
+    Fr = flux(xcr, ur-lamda * dxflux(xcr, ur)* sr/4.0) + sr/(lamda * 4.0)
+    return  0.5*(Fl+Fr)-0.5*( ur-ul )/lamda
 
 # works only for smooth solution
 def uexact(x, t, u0):
