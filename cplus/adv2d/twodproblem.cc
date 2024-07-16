@@ -232,7 +232,6 @@ void TwoDProblem::solve()
     double time  = 0.0; // initial time
     unsigned iter = 0;
     fileid = 0;
-    save_freq = 10;
     dt  = cfl * grid.dx; // time step
     Matrix res(grid.nx+4, grid.ny+4);
 	savesol(0.0, sol); // save initial condition
@@ -244,7 +243,9 @@ void TwoDProblem::solve()
      sol = sol - res;
      time +=dt;
      iter +=1;
-     if (iter % save_freq == 0){savesol(time, sol);}
+     if (save_freq > 0){
+        if (iter % save_freq == 0){savesol(time, sol);}
+     }
      std::cout<<"iter = "<< iter <<" "<< "time = "<< time << " "<<"Max = "<<findMinMax()[0] <<" min = "<< findMinMax()[1] << endl;
     }
     // save final time solution
