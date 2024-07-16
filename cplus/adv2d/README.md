@@ -20,3 +20,9 @@ This project implements a two-dimensional problem solver using OpenMP for parall
 -$sh runcongs.sh "20 40 80 160"
 -This will produce and error.txt file and can print the order of convergence as follows
 -$python printrate -f erro.txt
+## Visualization
+-You can use visit for visualization
+## To do
+- Avoid save solution while computing E.O.C.
+- Avoid print data in each iteration while computing E.O.C
+
