@@ -176,7 +176,7 @@ void TwoDProblem::updateGhostCells ()
     }
 }
 //------------------------------------------------------------------
-// Savbe solution to file in the .dat format for gnuplot purpose.
+// Save solution to file in the .dat format for gnuplot purpose.
 //------------------------------------------------------------------
 void TwoDProblem::savesol(double t, Matrix& sol) 
 {   
@@ -184,6 +184,7 @@ void TwoDProblem::savesol(double t, Matrix& sol)
     createDirectory(dirname);
     if(fileid == 0) {
         std::cout << "The directory \"sol\" is going to be formatted!" << std::endl;
+        /* use this to prevent erasing the existing directory
         std::string response;
         std::cout << "Do You Want To Continue? [y/n] ";
         std::cin >> response;
@@ -191,6 +192,7 @@ void TwoDProblem::savesol(double t, Matrix& sol)
             std::cerr << "Execution is terminated" << std::endl;
             exit(EXIT_FAILURE);
         }
+        */
         std::string pattern = "./sol/*";
         // Remove existing files
         system(("rm -f " + pattern).c_str());
@@ -226,7 +228,6 @@ std::vector<double> TwoDProblem::findMinMax()
     maxmin[1] = sol_min;
     return maxmin;
 }
-
 //------------------------------------------------------------------------------
 // perform time stepping
 //------------------------------------------------------------------------------
@@ -250,6 +251,24 @@ void TwoDProblem::solve()
      if (iter % save_freq == 0){savesol(time, sol);}
      std::cout<<"iter = "<< iter <<" "<< "time = "<< time << " "<<"Max = "<<findMinMax()[0] <<" min = "<< findMinMax()[1] << endl;
     }
+    // save final time solution
+    savesol(time,sol);
+}
+//-----------------------------------------------------------------------------
+// Compute error in the case of smooth test case
+// Final time solution and initial condition
+// are the same here
+void TwoDProblem::compute_error(double& l1error)
+//-----------------------------------------------------------------------------
+{    l1error = 0.0;
+    for (unsigned int i = 2; i < grid.nx+2; ++i)
+      {
+        for (unsigned int j = 2; j < grid.ny+2; ++j)
+        {
+            l1error += abs( sol(i,j)- initial_data( grid.xc(i-2,j-2), grid.yc(i-2,j-2) ) );
+        } 
+      } 
+    l1error*=(grid.dx*grid.dy);
 }
 //------------------------------------------------------------------------------
 // solve the whole problem
@@ -258,11 +277,11 @@ void TwoDProblem::run ()
 {
   make_grid();
   initialize();
-  auto start = std::chrono::steady_clock::now();
   solve();
-  auto end = std::chrono::steady_clock::now();
-  // Calculate the duration in milliseconds
-  std::chrono::duration<double> duration = end - start;
-  // Output the duration
-  std::cout << "Execution time: " << duration.count() << " seconds" << std::endl;
+  double l1error;
+  compute_error(l1error);
+  cout<<"Number of cells, h, l1error"<<endl;
+  cout<< grid.nx* grid.ny <<" "<< grid.dx <<" "<< l1error<<endl;
+
+
 }

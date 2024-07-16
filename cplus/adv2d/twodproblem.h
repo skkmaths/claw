@@ -40,4 +40,5 @@ class TwoDProblem
       void solve();
       void savesol(double t, Matrix& sol);
       vector<double> findMinMax();
+      void compute_error(double& l1error);
 };
