@@ -1,6 +1,5 @@
 ## TwoDProblem Solver
-
-This project implements a two-dimensional problem solver using OpenMP for parallelization. The program takes several command-line arguments to configure the problem's parameters and performs computations accordingly.
+This project implements a 2 dimensional finite volume scheme for linear advection equation, with constant coefficients. This also uses OpenMP for parallelization. But, seems to be not efficient. The program takes several command-line arguments to configure the problem's parameters and performs computations accordingly.
 ## Features
 - Solves two-dimensional problems with configurable grid size and time step.
 - Uses OpenMP for parallel computation to enhance performance.
