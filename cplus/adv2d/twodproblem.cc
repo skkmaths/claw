@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <string>
 #include <iomanip> // for std::setprecision
+#include <chrono>
+
 
 using namespace std;
 // You should set the CFL according to your problem.
@@ -113,18 +115,17 @@ void TwoDProblem::initialize ()
 //------------------------------------------------------------------------------
 // residual
 //------------------------------------------------------------------------------
-void TwoDProblem::compute_residual (Matrix& res)
+void TwoDProblem::compute_residual(Matrix& res)
 { 
     // set residual to zero; this is a potential point
-    res *= 0.0;
+    res = 0.0;
     lam_x = dt / grid.dx;
     lam_y = dt / grid.dy;
 
     // Loop over interior vertical faces includig the boundary
-    //#pragma omp parallel for
+    //#pragma omp parallel for collapse(2)
     for (unsigned int i = 1; i < grid.nx + 2; ++i) // face between (i,j) and (i+1,j)
     {  
-        //#pragma omp parallel for
         for (unsigned int j = 2; j < grid.ny + 2; ++j) 
         {   double sl = sol(i,j);
             double sr = sol(i+1,j);
@@ -134,9 +135,9 @@ void TwoDProblem::compute_residual (Matrix& res)
         }
     }
     // Loop over horizontal faces including the boundary faces
-    //#pragma omp parallel for
+    //#pragma omp parallel for collapse(2)
     for (unsigned int j = 1; j < grid.ny + 2; ++j) 
-    {   //#pragma omp parallel for
+    {   
         for (unsigned int i = 2; i < grid.nx + 2; ++i)
          {
             double sl = sol(i,j);
@@ -194,14 +195,11 @@ void TwoDProblem::savesol(double t, Matrix& sol)
         // Remove existing files
         system(("rm -f " + pattern).c_str());
     }
-
     std::string filename = getFilename("sol/sol", fileid);
     std::ofstream file(filename);
-
     file << "TITLE = \"Linear advection equation\"" << std::endl;
     file << "VARIABLES = \"x\", \"y\", \"sol\"" << std::endl;
     file << "ZONE STRANDID=1, SOLUTIONTIME=" << t << ", I=" << grid.nx << ", J=" << grid.ny << ", DATAPACKING=POINT" << std::endl;
-
     for(unsigned int i = 0; i < grid.nx ; ++i) {
         for(unsigned int j = 0; j < grid.ny ; ++j) {
             file << std::setprecision(8) << std::fixed << grid.xc(i,j) << ", " << grid.yc(i,j) << ", " << sol(i+2,j+2) << std::endl;
@@ -215,6 +213,7 @@ std::vector<double> TwoDProblem::findMinMax()
     std::vector<double> maxmin(2);
     double sol_max = -1.0e20;
     double sol_min = 1.0e20;
+    //#pragma omp parallel for collapse(2)
     for (unsigned int i = 2; i < grid.nx+2; ++i)
       {
         for (unsigned int j = 2; j < grid.ny+2; ++j)
@@ -245,7 +244,6 @@ void TwoDProblem::solve()
      if (time+dt >Tf){ dt = Tf-time;}
      updateGhostCells();
      compute_residual(res);
-     
      sol = sol - res;
      time +=dt;
      iter +=1;
@@ -260,5 +258,11 @@ void TwoDProblem::run ()
 {
   make_grid();
   initialize();
+  auto start = std::chrono::steady_clock::now();
   solve();
+  auto end = std::chrono::steady_clock::now();
+  // Calculate the duration in milliseconds
+  std::chrono::duration<double> duration = end - start;
+  // Output the duration
+  std::cout << "Execution time: " << duration.count() << " seconds" << std::endl;
 }
