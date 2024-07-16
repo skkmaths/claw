@@ -68,8 +68,8 @@ void TwoDProblem::make_grid ()
    grid.xmin = 0.0;
    grid.ymax = 1.0;
    grid.ymin = 0.0;
-   grid.nx = 50;
-   grid.ny = 50;
+   grid.nx = nx;
+   grid.ny = ny;
    grid.dx = (grid.xmax-grid.xmin)/grid.nx;
    grid.dy = (grid.ymax-grid.ymin)/grid.ny;
    grid.allocate();
@@ -232,12 +232,11 @@ std::vector<double> TwoDProblem::findMinMax()
 // perform time stepping
 //------------------------------------------------------------------------------
 void TwoDProblem::solve()
-{   cfl = 0.4;
-    Tf = 1.0; // final time  
+{   
     double time  = 0.0; // initial time
     unsigned iter = 0;
     fileid = 0;
-    save_freq = 5;
+    save_freq = 10;
     dt  = cfl * grid.dx; // time step
     Matrix res(grid.nx+4, grid.ny+4);
 	savesol(0.0, sol); // save initial condition

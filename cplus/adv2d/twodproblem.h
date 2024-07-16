@@ -9,11 +9,13 @@ using namespace std;
 class TwoDProblem
 {
    public:
-      TwoDProblem () {};
+      TwoDProblem (int nx_val, int ny_val, double Tfinal, double cfl) : nx(nx_val), ny(ny_val), Tf(Tfinal), cfl(cfl) {}
       ~TwoDProblem () {};
       void run ();
 
    private:
+      int nx;
+      int ny;
       unsigned int save_freq;
       Grid    grid;
       Matrix  sol;
