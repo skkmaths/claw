@@ -12,7 +12,7 @@ This project implements a 2 dimensional finite volume scheme for linear advectio
 - $make 
 - $./twodproblem
 - By default it uses number of cells, nx, ny, and final time Tf and cfl.
-- For your choice you can use $./twodproblem -nx 50 -ny 50 -Tf 1.0 -cfl 0.4
+- You can also use $./twodproblem -nx 50 -ny 50 -Tf 1.0 -cfl 0.4
 
 ## E.O.C. computation 
 - E.O.C. works only for smooth periodic test case
