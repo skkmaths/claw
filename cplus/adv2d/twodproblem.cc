@@ -121,30 +121,26 @@ void TwoDProblem::compute_residual(Matrix& res)
     res = 0.0;
     lam_x = dt / grid.dx;
     lam_y = dt / grid.dy;
-
     // Loop over interior vertical faces includig the boundary
     //#pragma omp parallel for collapse(2)
-    for (unsigned int i = 1; i < grid.nx + 2; ++i) // face between (i,j) and (i+1,j)
-    {  
-        for (unsigned int j = 2; j < grid.ny + 2; ++j) 
-        {   double sl = sol(i,j);
-            double sr = sol(i+1,j);
-            double Fn = xnumflux(sl, sr);
-            res(i,j) +=  lam_x * Fn;
-            res(i+1,j) -=  lam_x * Fn;
+    for (unsigned int i = 1; i < grid.nx + 2; ++i){// face between (i,j) and (i+1,j)
+       for (unsigned int j = 2; j < grid.ny + 2; ++j){
+          double sl = sol(i,j);
+          double sr = sol(i+1,j);
+          double Fn = xnumflux(sl, sr);
+          res(i,j) +=  lam_x * Fn;
+          res(i+1,j)-=  lam_x * Fn;
         }
     }
     // Loop over horizontal faces including the boundary faces
     //#pragma omp parallel for collapse(2)
-    for (unsigned int j = 1; j < grid.ny + 2; ++j) 
-    {   
-        for (unsigned int i = 2; i < grid.nx + 2; ++i)
-         {
-            double sl = sol(i,j);
-            double sr = sol(i,j+1);
-            double Gn = ynumflux(sl,sr);
-            res(i,j) += lam_y * Gn;
-            res(i,j+1) -= lam_y * Gn;
+    for (unsigned int j = 1; j < grid.ny + 2; ++j){
+       for (unsigned int i = 2; i < grid.nx + 2; ++i){
+          double sl = sol(i,j);
+          double sr = sol(i,j+1);
+          double Gn = ynumflux(sl,sr);
+          res(i,j) += lam_y * Gn;
+          res(i,j+1) -= lam_y * Gn;
         }
     }
 }
