@@ -21,7 +21,6 @@ class Matrix
       double& operator() (const unsigned int i, const unsigned int j);
       void allocate (const unsigned int, const unsigned int);
       unsigned int index (const unsigned int, const unsigned int);
-
    private:
       unsigned int nrow, ncol;
       double* data;

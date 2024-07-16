@@ -18,26 +18,24 @@ class TwoDProblem
       Grid    grid;
       Matrix  sol;
       Matrix  res;
-      int fileid = 0;
-      double t;
+      int fileid ;
       double Tf;
       double dt;
-      int  iter;
-
+      double cfl;
+      double lam_x;
+      double lam_y;
       void make_grid ();
-
       double initial_data( const double& x, const double& y);
       double xflux(const double& u);
       double yflux (const double& u);
-
       double xnumflux(const double& state_left,
     	       const double& state_right);
-
       double ynumflux(const double& state_left,
     	       const double& state_right);
       void initialize();
-      void compute_residual(Matrix& ures);
-      void updateGhostCells (const double& time);
+      void compute_residual(Matrix& res);
+      void updateGhostCells ();
       void solve();
       void savesol(double t, Matrix& sol);
+      vector<double> findMinMax();
 };
