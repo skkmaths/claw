@@ -9,12 +9,14 @@ CXX    = g++
 
 # GNU compiler
 ifeq ($(CXX),g++)
-	CFLAGS = -O3 -Wall
+	CFLAGS = -O3 -Wall -fopenmp
+	LDFLAGS = -fopenmp
 endif
 
 # Intel compiler
 ifeq ($(CXX),icpc)
-	CFLAGS = -fast
+	CFLAGS = -fast -qopenmp
+	LDFLAGS = -qopenmp
 endif
 
 HDR = $(wildcard *.h)
@@ -32,7 +34,6 @@ $(OBJ): $(HDR)
 
 .cc.o: $(HDR)
 	$(CXX) $(CFLAGS) -c $*.cc
-
 clean:
 	rm -f *.o $(TARGET)
 
