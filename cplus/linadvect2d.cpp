@@ -8,7 +8,8 @@
 #include <string>
 #include <iomanip> // for std::setprecision
 
-
+// compile  as foolows with openmpi
+// g++ -fopenmp linadvect2d.cpp -o out
 using namespace std;
 
 int nx  = 100;  // number of cells in the x direction
@@ -44,7 +45,7 @@ std::string getFilename(const std::string& basename, int id) {
     return oss.str();
 }
 
-void savesol(double t, std::vector<std::vector<double>>& var_u) 
+void savesol(double t, std::vector<std::vector<double> >& var_u) 
 {
     std::string dirname = "sol";
     createDirectory(dirname);
@@ -98,9 +99,9 @@ double ynumflux(double x, double y, double Gl, double Gr, double vl, double vr)
     return 0.5*(Gl + Gr) - 0.5*(vr - vl);
 }
 // compute residual
-std::vector<std::vector<double>> compute_residual(double t, double lam_x, double lam_y, 
-                                                   const std::vector<std::vector<double>>& v, 
-                                                   std::vector<std::vector<double>>& vres) {
+std::vector<std::vector<double> > compute_residual(double t, double lam_x, double lam_y, 
+                                                   const std::vector<std::vector<double> >& v, 
+                                                   std::vector<std::vector<double> >& vres) {
     for (int i = 0; i < nx + 4; ++i) {
         std::fill(vres[i].begin(), vres[i].end(), 0.0);
     }
@@ -144,7 +145,7 @@ std::vector<std::vector<double>> compute_residual(double t, double lam_x, double
 }
 // Periodic boundary condition
 
-void update_ghost_cells(std::vector<std::vector<double>>& u, int nx, int ny) {
+void update_ghost_cells(std::vector<std::vector<double > > & u, int nx, int ny) {
     // left ghost cell
     for (int j = 0; j <= ny + 3; ++j) {
         u[0][j] = u[nx][j];
@@ -174,11 +175,11 @@ void update_ghost_cells(std::vector<std::vector<double>>& u, int nx, int ny) {
 
 int main() {
 
-double Tf = 20.0;
-int save_freq = 5;
+double Tf = 1.0;
+int save_freq = 10;
 // allocate solution variables
-vector<vector<double>> u(ny+4, vector<double>(nx+4));
-vector<vector<double>> ures(ny+4, vector<double>(nx+4));
+vector<vector<double> > u(ny+4, vector<double>(nx+4));
+vector<vector<double> > ures(ny+4, vector<double>(nx+4));
 
 
 // Set the initial condition by interpolation
