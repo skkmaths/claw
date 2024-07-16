@@ -70,7 +70,7 @@ return ul;
 //------------------------------------------------------------------------------
 void TwoDProblem::make_grid ()
 {
-   /*
+   
    grid.xmax = 1.0;
    grid.xmin = 0.0;
    grid.ymax = 1.0;
@@ -82,24 +82,24 @@ void TwoDProblem::make_grid ()
    grid.allocate();
    cout<<"Making grid for 2Dclw problem ..." << endl;
    // write cell centers starting from left bottom corner
-   for (int i = 0; i < nx ; ++i) 
+   for (unsigned int i = 0; i < grid.nx ; ++i) 
       {
-      for (int j = 0; j < ny ; ++j) 
+      for (unsigned int j = 0; j < grid.ny ; ++j) 
          {
          grid.xc(i,j) = grid.xmin + (i + 0.5 ) * grid.dx;
          grid.yc(i,j) = grid.ymin + (j + 0.5) * grid.dy ;
         }
       }
    // write cell vertices
-   for (int i = 0; i < nx +1 ; ++i) 
+   for (unsigned int i = 0; i < grid.nx +1 ; ++i) 
       {
-      for (int j = 0; j < ny+1 ; ++j) 
+      for (unsigned int j = 0; j < grid.ny+1 ; ++j) 
          {
          grid.x(i,j) = grid.xmin + i * grid.dx;
          grid.y(i,j) = grid.ymin + j* grid.dy ;
          }
       }
-      */
+      
 }
 
 //------------------------------------------------------------------------------
@@ -107,22 +107,58 @@ void TwoDProblem::make_grid ()
 //------------------------------------------------------------------------------
 void TwoDProblem::initialize ()
 {
-   /*
+   
    sol.allocate(grid.nx+4, grid.ny+4); // with two ghost cells each side
    // initialize only real cells
-   for (int i = 2; i < nx + 2; ++i) 
+   for (unsigned int i = 2; i < grid.nx + 2; ++i) 
       {
-        for (int j = 2; j < ny + 2; ++j) 
+        for (unsigned int j = 2; j < grid.ny + 2; ++j) 
           {
             sol(i,j) = initial_data( grid.xc(i-2,j-2), grid.yc(i-2,j-2));
           }
-          */
+      }
+
+  // allocate res matrix
+  res.allocate(grid.nx+4, grid.ny+4); 
+          
 }
 //------------------------------------------------------------------------------
 // residual
 //------------------------------------------------------------------------------
-void TwoDProblem::compute_residual (Matrix& ures)
+void TwoDProblem::compute_residual (Matrix& res)
 { 
+    double lam_x = dt / grid.dx;
+    double lam_y = dt / grid.dy;
+
+
+    // Loop over interior vertical faces includig the boundary
+    //#pragma omp parallel for
+    for (unsigned int i = 1; i < grid.nx + 2; ++i) // face between (i,j) and (i+1,j)
+    {  
+        //#pragma omp parallel for
+        for (unsigned int j = 2; j < grid.ny + 2; ++j) 
+        {   double sl = sol(i,j);
+            double sr = sol(i+1,j);
+            double Fn = xnumflux(sl, sr);
+            res(i,j) += lam_x * Fn;
+            res(i+1,j) -= lam_x * Fn;
+        }
+    }
+
+    // Loop over horizontal faces including the boundary faces
+    //#pragma omp parallel for
+    for (unsigned int j = 1; j < grid.ny + 2; ++j) 
+    {   //#pragma omp parallel for
+        for (unsigned int i = 2; i < grid.nx + 2; ++i)
+         {
+            double sl = sol(i,j);
+            double sr = sol(i,j);
+            double Gn = ynumflux(sl,sr);
+            res(i,j) += lam_y * Gn;
+            res(i,j+ 1) -= lam_y * Gn;
+        }
+    }
+
 
 }
 //------------------------------------------------------------------------------
@@ -139,7 +175,7 @@ void TwoDProblem::updateGhostCells (const double& Time)
 //------------------------------------------------------------------
 void TwoDProblem::savesol(double t, Matrix& sol) 
 {
-   /*
+   
     std::string dirname = "sol";
     createDirectory(dirname);
     if(fileid == 0) {
@@ -161,17 +197,17 @@ void TwoDProblem::savesol(double t, Matrix& sol)
 
     file << "TITLE = \"Linear advection equation\"" << std::endl;
     file << "VARIABLES = \"x\", \"y\", \"sol\"" << std::endl;
-    file << "ZONE STRANDID=1, SOLUTIONTIME=" << t << ", I=" << nx << ", J=" << ny << ", DATAPACKING=POINT" << std::endl;
+    file << "ZONE STRANDID=1, SOLUTIONTIME=" << t << ", I=" << grid.nx << ", J=" << grid.ny << ", DATAPACKING=POINT" << std::endl;
 
-    for(int i = 0; i < grid.nx ; ++i) {
-        for(int j = 0; j < grid.ny ; ++j) {
+    for(unsigned int i = 0; i < grid.nx ; ++i) {
+        for(unsigned int j = 0; j < grid.ny ; ++j) {
             file << std::setprecision(8) << std::fixed << grid.xc(i,j) << ", " << grid.yc(i,j) << ", " << sol(i+2,j+2) << std::endl;
         }
     }
 
     file.close();
     fileid++;
-    */
+    
 }
 
 //------------------------------------------------------------------------------
@@ -179,7 +215,25 @@ void TwoDProblem::savesol(double t, Matrix& sol)
 //------------------------------------------------------------------------------
 void TwoDProblem::solve()
 {
-	 //savesol(0.0, sol);
+    Tf = 1.0; // final time
+    t  = 0.0; // initial time
+    iter = 0;
+    save_freq = 10;
+    dt  = 0.01; // time step
+    
+	savesol(0.0, sol); // save initial condition
+
+    while (t < Tf)
+    {
+     if ( t+dt > Tf){ dt = Tf-t;}
+     compute_residual(res);
+     sol = sol-res;
+     t +=dt;
+     iter +=1;
+     if (iter % save_freq == 0){savesol(t, sol);}
+
+    }
+
 }
 
 //------------------------------------------------------------------------------
@@ -187,9 +241,9 @@ void TwoDProblem::solve()
 //------------------------------------------------------------------------------
 void TwoDProblem::run ()
 {
-   /*
+   
     make_grid();
     initialize();
     solve();
-    */
+    
 }

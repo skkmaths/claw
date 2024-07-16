@@ -17,6 +17,12 @@ class TwoDProblem
       unsigned int save_freq;
       Grid    grid;
       Matrix  sol;
+      Matrix  res;
+      int fileid = 0;
+      double t;
+      double Tf;
+      double dt;
+      int  iter;
 
       void make_grid ();
 
