@@ -19,7 +19,7 @@ class TwoDProblem
       Matrix  sol;
       Matrix  res;
       int fileid ;
-      double Tf;
+      double Tf; 
       double dt;
       double cfl;
       double lam_x;

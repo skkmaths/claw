@@ -11,9 +11,7 @@
 #include <iomanip> // for std::setprecision
 
 using namespace std;
-
 // You should set the CFL according to your problem.
-
 #define SIGN(a) (((a)<0) ? -1:1)
 
 // For file name
@@ -28,7 +26,6 @@ void createDirectory(const std::string& dirname)
         std::cout << "Directory " << dirname << " is created" << std::endl;
     }
 }
-
 std::string getFilename(const std::string& basename, int id) {
     std::ostringstream oss;
     oss << basename << "_" << std::setfill('0') << std::setw(4) << id << ".plt";
@@ -45,24 +42,22 @@ double TwoDProblem::yflux(const double& u)
 {
 	return u;
 }
-
 double  TwoDProblem::initial_data( const double& x, const double& y)
 {
-return sin(2.0 * M_PI * x); //* sin(2.0 * M_PI * y);
+return sin(2.0 * M_PI * x)* sin(2.0 * M_PI * y);
 }
-
 // Numerical  flux in the x direction   across vertical wall
 double TwoDProblem::xnumflux( const double& ul,
        const double& ur)
 {
- return  ul; //0.5*( xflux(ul) + xflux(ur) - (ur-ul)/lam_x );
+ return  ul;//0.5*( xflux(ul) + xflux(ur) - (ur-ul)/lam_x );
 }
 
 // numerical flux in the y direction  across  horizontal wall
 double TwoDProblem::ynumflux( const double& ul,
        const double& ur)
 {
-return 0.0; //0.5*( yflux(ul) + yflux(ur) - (ur-ul)/lam_y);
+return ul;//0.5*( yflux(ul) + yflux(ur) - (ur-ul)/lam_y);
 }
 //------------------------------------------------------------------------------
 // Create cartesian grid
@@ -73,8 +68,8 @@ void TwoDProblem::make_grid ()
    grid.xmin = 0.0;
    grid.ymax = 1.0;
    grid.ymin = 0.0;
-   grid.nx = 100;
-   grid.ny = 100;
+   grid.nx = 50;
+   grid.ny = 50;
    grid.dx = (grid.xmax-grid.xmin)/grid.nx;
    grid.dy = (grid.ymax-grid.ymin)/grid.ny;
    grid.allocate();
@@ -105,7 +100,6 @@ void TwoDProblem::make_grid ()
 //------------------------------------------------------------------------------
 void TwoDProblem::initialize ()
 {
-   
    sol.allocate(grid.nx+4, grid.ny+4); // with two ghost cells each side
    // initialize only real cells
    for (unsigned int i = 2; i < grid.nx + 2; ++i) 
@@ -114,14 +108,15 @@ void TwoDProblem::initialize ()
           {
             sol(i,j) = initial_data( grid.xc(i-2,j-2), grid.yc(i-2,j-2));
           }
-      }
-          
+      }        
 }
 //------------------------------------------------------------------------------
 // residual
 //------------------------------------------------------------------------------
 void TwoDProblem::compute_residual (Matrix& res)
 { 
+    // set residual to zero; this is a potential point
+    res *= 0.0;
     lam_x = dt / grid.dx;
     lam_y = dt / grid.dy;
 
@@ -134,8 +129,8 @@ void TwoDProblem::compute_residual (Matrix& res)
         {   double sl = sol(i,j);
             double sr = sol(i+1,j);
             double Fn = xnumflux(sl, sr);
-            res(i,j) += lam_x * Fn;
-            res(i+1,j) -= lam_x * Fn;
+            res(i,j) +=  lam_x * Fn;
+            res(i+1,j) -=  lam_x * Fn;
         }
     }
     // Loop over horizontal faces including the boundary faces
@@ -179,13 +174,11 @@ void TwoDProblem::updateGhostCells ()
         sol(i, grid.ny+3) = sol(i,3);
     }
 }
-
 //------------------------------------------------------------------
 // Savbe solution to file in the .dat format for gnuplot purpose.
 //------------------------------------------------------------------
 void TwoDProblem::savesol(double t, Matrix& sol) 
-{
-   
+{   
     std::string dirname = "sol";
     createDirectory(dirname);
     if(fileid == 0) {
@@ -214,10 +207,8 @@ void TwoDProblem::savesol(double t, Matrix& sol)
             file << std::setprecision(8) << std::fixed << grid.xc(i,j) << ", " << grid.yc(i,j) << ", " << sol(i+2,j+2) << std::endl;
         }
     }
-
     file.close();
     fileid++;
-    
 }
 std::vector<double> TwoDProblem::findMinMax() 
 {
@@ -255,7 +246,8 @@ void TwoDProblem::solve()
      if (time+dt >Tf){ dt = Tf-time;}
      updateGhostCells();
      compute_residual(res);
-     sol = sol-res;
+     
+     sol = sol - res;
      time +=dt;
      iter +=1;
      if (iter % save_freq == 0){savesol(time, sol);}
