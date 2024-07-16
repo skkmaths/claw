@@ -28,15 +28,15 @@ TARGET = twodproblem
 all: $(TARGET)
 
 twodproblem: $(OBJ)
-	$(CXX) -o $(TARGET) $(OBJ)
+	$(CXX) -o $(TARGET) $(OBJ) $(LDFLAGS)
 
-$(OBJ): $(HDR)
+%.o: %.cc $(HDR)
+	$(CXX) $(CFLAGS) -c $<
 
-.cc.o: $(HDR)
-	$(CXX) $(CFLAGS) -c $*.cc
 clean:
 	rm -f *.o $(TARGET)
 
 allclean:
 	make clean
 	rm -f *.vtk
+
