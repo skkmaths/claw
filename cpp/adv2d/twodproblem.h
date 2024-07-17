@@ -9,7 +9,8 @@ using namespace std;
 class TwoDProblem
 {
    public:
-      TwoDProblem (int nx_val, int ny_val, double Tfinal, double cfl, unsigned int save_freq): nx(nx_val), ny(ny_val), Tf(Tfinal), cfl(cfl), save_freq(save_freq) {}
+      TwoDProblem (int nx_val, int ny_val, double Tfinal, double cfl, unsigned int save_freq, string scheme):
+       nx(nx_val), ny(ny_val), Tf(Tfinal), cfl(cfl), save_freq(save_freq), scheme(scheme) {}
       ~TwoDProblem () {};
       void run ();
 
@@ -18,12 +19,14 @@ class TwoDProblem
       int ny;
       Grid    grid;
       Matrix  sol;
+      Matrix  sol_old;
       Matrix  res;
       int fileid ;
       double Tf; 
       double dt;
       double cfl;
       unsigned int save_freq;
+      string scheme;
       double lam_x;
       double lam_y;
       void make_grid ();
@@ -41,4 +44,7 @@ class TwoDProblem
       void savesol(double t, Matrix& sol);
       vector<double> findMinMax();
       void compute_error(double& l1error);
+      void apply_ssprk2();
+      void apply_euler();
+      double reconstruct(const double& sol_ll,const double& sol_l,const double& sol_r);
 };

@@ -28,7 +28,7 @@ double minmod (const double& ul, const double& u0, const double& ur)
    double df = beta*(ur - u0);         // forward difference
    double dc = 0.5 * (ur - ul); // central difference
 
-   if (db*df > 0.0 & dc*df >0.0 )
+   if ( (db*df > 0.0) & (dc*df >0.0) )
    {
       result = std::min(min(fabs(db), fabs(dc)), fabs(df) );
       result *= SIGN(db);
@@ -38,9 +38,13 @@ double minmod (const double& ul, const double& u0, const double& ur)
    return result;
 }
 
-double reconstruct(const double& sol_ll,const double& sol_l,const double& sol_r)
-{   double theta = 0.5;
-    return  sol_l + 0.5 * 2.0 * theta * minmod(sol_ll, sol_l, sol_r);
+double TwoDProblem::reconstruct(const double& sol_ll,const double& sol_l,const double& sol_r)
+{   
+    if( scheme == "so"){
+       double theta = 0.5;
+       return  sol_l + 0.5 * 2.0 * theta * minmod(sol_ll, sol_l, sol_r);
+    }
+    else return sol_l;
 }
 // For file name
 void createDirectory(const std::string& dirname) 
@@ -158,6 +162,7 @@ void TwoDProblem::compute_residual(Matrix& res)
         }
     }
     // Loop over horizontal faces including the boundary faces
+    //// face between (i,j) and (i,j+1)
     //#pragma omp parallel for collapse(2)
     for (unsigned int j = 1; j < grid.ny + 2; ++j){
        for (unsigned int i = 2; i < grid.nx + 2; ++i){
@@ -249,44 +254,6 @@ std::vector<double> TwoDProblem::findMinMax()
     maxmin[1] = sol_min;
     return maxmin;
 }
-//------------------------------------------------------------------------------
-// perform time stepping
-//------------------------------------------------------------------------------
-void TwoDProblem::solve()
-{   int nrk  = 2; // stages of RK method
-    vector<double> ark(3);
-    vector<double> brk(3);
-    ark[0] = 0.0;
-    ark[1] = 3.0/4.0;
-    ark[2] = 1.0/3.0;
-    for (int i=0; i<nrk; ++i){ brk[i] = 1.0 - ark[i];}
-    double time  = 0.0; // initial time
-    unsigned iter = 0;
-    fileid = 0;
-    dt  = cfl * grid.dx; // time step
-    Matrix res(grid.nx+4, grid.ny+4);
-    Matrix sol_old(grid.nx+4,grid.ny+4);
-	savesol(0.0, sol); // save initial condition
-    while (time < Tf)
-    {
-     if (time + dt >Tf){ dt = Tf-time;}
-     sol_old = sol;
-     for (int irk = 0; irk  < nrk ; ++irk){
-        updateGhostCells();
-        compute_residual(res);
-        sol = sol_old * ark[irk] + (sol - res) * brk[irk];
-     }
-     time +=dt;
-     iter +=1;
-     if (save_freq > 0)
-     {       
-        std::cout<<"iter = "<< iter <<" "<< "time = "<< time << " "<<"Max = "<<findMinMax()[0] <<" min = "<< findMinMax()[1] << endl;
-        if (iter % save_freq == 0){savesol(time, sol);}
-     }
-    }
-    // save final time solution
-    savesol(time,sol);
-}
 //-----------------------------------------------------------------------------
 // Compute error in the case of smooth test case
 // Final time solution and initial condition
@@ -302,6 +269,54 @@ void TwoDProblem::compute_error(double& l1error)
         } 
       } 
     l1error*=(grid.dx*grid.dy);
+}
+// ssprk2 time stepping
+void TwoDProblem::apply_ssprk2(){
+     sol_old = sol;
+     updateGhostCells();
+     compute_residual(res);
+     sol = sol- res;
+     updateGhostCells();
+     compute_residual(res);
+     sol = sol - res;
+     sol = (sol_old + sol) * 0.5;  
+}
+// Forward euler time stepping
+void TwoDProblem::apply_euler(){
+     updateGhostCells();
+     compute_residual(res);
+     sol = sol- res;
+    }
+//------------------------------------------------------------------------------
+// perform time stepping
+//------------------------------------------------------------------------------
+void TwoDProblem::solve(){
+    double time  = 0.0; // initial time
+    unsigned iter = 0;
+    fileid = 0;
+    dt  = cfl * grid.dx; // time step
+    res.allocate(grid.nx+4, grid.ny+4);
+    sol_old.allocate(grid.nx+4, grid.ny+4);
+	savesol(0.0, sol); // save initial condition
+    while (time < Tf)
+    {
+     if (time + dt >Tf){ dt = Tf-time;}
+     //Update time solution
+     if (scheme =="so") apply_ssprk2(); // update solution by rk time stepping 
+     else apply_euler(); // update solution by fo scheme
+     time +=dt;
+     iter +=1;
+     if (save_freq > 0){       
+        if (iter % save_freq == 0){savesol(time, sol);}
+        std::cout << std::left;
+        std::cout << "iter = " << std::setw(8) << iter 
+              << "time = " << std::setw(10) << time 
+              << "Max = " << std::setw(15) << findMinMax()[0] 
+              << "Min = " << std::setw(15) << findMinMax()[1] << std::endl;
+     }
+    }
+    // save final time solution
+    savesol(time,sol);
 }
 //------------------------------------------------------------------------------
 // solve the whole problem
