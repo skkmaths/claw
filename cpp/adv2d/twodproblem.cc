@@ -10,12 +10,38 @@
 #include <string>
 #include <iomanip> // for std::setprecision
 #include <chrono>
-
+#include <algorithm> // for std::min
 
 using namespace std;
 // You should set the CFL according to your problem.
 #define SIGN(a) (((a)<0) ? -1:1)
+//------------------------------------------------------------------------------
+// Minmod limiter
+// minmod ( 2(u0-ul), (ur-ul)/2, 2(ur-u0) )
+//------------------------------------------------------------------------------
+double minmod (const double& ul, const double& u0, const double& ur)
+{
+   double result;
+   double beta=1.0;
 
+   double db = beta*(u0 - ul);         // backward difference
+   double df = beta*(ur - u0);         // forward difference
+   double dc = 0.5 * (ur - ul); // central difference
+
+   if (db*df > 0.0 & dc*df >0.0 )
+   {
+      result = std::min(min(fabs(db), fabs(dc)), fabs(df) );
+      result *= SIGN(db);
+   }
+   else
+      result = 0.0;
+   return result;
+}
+
+double reconstruct(const double& sol_ll,const double& sol_l,const double& sol_r)
+{   double theta = 0.5;
+    return  sol_l + 0.5 * 2.0 * theta * minmod(sol_ll, sol_l, sol_r);
+}
 // For file name
 void createDirectory(const std::string& dirname) 
 {
@@ -96,7 +122,6 @@ void TwoDProblem::make_grid ()
       }
       
 }
-
 //------------------------------------------------------------------------------
 // allocate memory and set initial condition
 //------------------------------------------------------------------------------
@@ -125,8 +150,8 @@ void TwoDProblem::compute_residual(Matrix& res)
     //#pragma omp parallel for collapse(2)
     for (unsigned int i = 1; i < grid.nx + 2; ++i){// face between (i,j) and (i+1,j)
        for (unsigned int j = 2; j < grid.ny + 2; ++j){
-          double sl = sol(i,j);
-          double sr = sol(i+1,j);
+          double sl = reconstruct(sol(i-1,j),sol(i,j), sol(i+1,j));
+          double sr = reconstruct(sol(i+2,j), sol(i+1,j), sol(i,j));
           double Fn = xnumflux(sl, sr);
           res(i,j) +=  lam_x * Fn;
           res(i+1,j)-=  lam_x * Fn;
@@ -136,8 +161,8 @@ void TwoDProblem::compute_residual(Matrix& res)
     //#pragma omp parallel for collapse(2)
     for (unsigned int j = 1; j < grid.ny + 2; ++j){
        for (unsigned int i = 2; i < grid.nx + 2; ++i){
-          double sl = sol(i,j);
-          double sr = sol(i,j+1);
+          double sl = reconstruct(sol(i,j-1), sol(i,j), sol(i,j+1));
+          double sr = reconstruct(sol(i,j+2), sol(i,j+1), sol(i,j));
           double Gn = ynumflux(sl,sr);
           res(i,j) += lam_y * Gn;
           res(i,j+1) -= lam_y * Gn;
