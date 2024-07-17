@@ -4,7 +4,7 @@ rm -rf $FILE && touch $FILE
 for ncell in $NCELL
 do 
    echo "ncell = $ncell"
-   ./twodproblem -nx $ncell -ny $ncell -Tf 1.0 -cfl 0.4 -save_freq 0 >log.txt
+   ./run -nx $ncell -ny $ncell -Tf 1.0 -cfl 0.4 -save_freq 0 >log.txt
    tail -n 1 log.txt
    tail -n 1 log.txt >> $FILE
 done

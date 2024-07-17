@@ -23,11 +23,11 @@ HDR = $(wildcard *.h)
 SRC = $(wildcard *.cc)
 OBJ = $(patsubst %.cc,%.o,$(SRC))
 
-TARGET = twodproblem
+TARGET = run
 
 all: $(TARGET)
 
-twodproblem: $(OBJ)
+run: $(OBJ)
 	$(CXX) -o $(TARGET) $(OBJ) $(LDFLAGS)
 
 %.o: %.cc $(HDR)
