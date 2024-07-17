@@ -9,7 +9,7 @@
 #include <iomanip> // for std::setprecision
 #include <cstring> // for strcmp
 // This code solves the linear advection equation in 2D 
-// of the form u_t + u_x + u_y = 0
+// u_t + u_x + u_y = 0
 #include "twodproblem.h"
 
 using namespace std;
