@@ -253,25 +253,36 @@ std::vector<double> TwoDProblem::findMinMax()
 // perform time stepping
 //------------------------------------------------------------------------------
 void TwoDProblem::solve()
-{   
+{   int nrk  = 2; // stages of RK method
+    vector<double> ark(3);
+    vector<double> brk(3);
+    ark[0] = 0.0;
+    ark[1] = 3.0/4.0;
+    ark[2] = 1.0/3.0;
+    for (int i=0; i<nrk; ++i){ brk[i] = 1.0 - ark[i];}
     double time  = 0.0; // initial time
     unsigned iter = 0;
     fileid = 0;
     dt  = cfl * grid.dx; // time step
     Matrix res(grid.nx+4, grid.ny+4);
+    Matrix sol_old(grid.nx+4,grid.ny+4);
 	savesol(0.0, sol); // save initial condition
     while (time < Tf)
     {
-     if (time+dt >Tf){ dt = Tf-time;}
-     updateGhostCells();
-     compute_residual(res);
-     sol = sol - res;
+     if (time + dt >Tf){ dt = Tf-time;}
+     sol_old = sol;
+     for (int irk = 0; irk  < nrk ; ++irk){
+        updateGhostCells();
+        compute_residual(res);
+        sol = sol_old * ark[irk] + (sol - res) * brk[irk];
+     }
      time +=dt;
      iter +=1;
-     if (save_freq > 0){
+     if (save_freq > 0)
+     {       
+        std::cout<<"iter = "<< iter <<" "<< "time = "<< time << " "<<"Max = "<<findMinMax()[0] <<" min = "<< findMinMax()[1] << endl;
         if (iter % save_freq == 0){savesol(time, sol);}
      }
-     std::cout<<"iter = "<< iter <<" "<< "time = "<< time << " "<<"Max = "<<findMinMax()[0] <<" min = "<< findMinMax()[1] << endl;
     }
     // save final time solution
     savesol(time,sol);
