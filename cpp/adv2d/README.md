@@ -12,7 +12,7 @@ This project implements a 2 dimensional finite volume scheme for linear advectio
 - $make 
 - $./run
 - By default it uses number of cells, nx, ny, and final time Tf and cfl.
-- You can also use $./run -nx 50 -ny 50 -Tf 1.0 -cfl 0.4 -save_freq 10
+- You can also run as, eg: $./run -nx 50 -ny 50 -Tf 1.0 -cfl 0.4 -save_freq 10 -scheme so
 
 ## E.O.C. computation 
 - E.O.C. works only for smooth periodic test case
@@ -20,6 +20,7 @@ This project implements a 2 dimensional finite volume scheme for linear advectio
 - While computing E.O.C. set -save_freq 0 to save computational time
 -This will produce and error.txt file and can print the order of convergence as follows
 -$python printrate -f erro.txt
+-Both first and second -order schemes gives the expected E.O.C
 ## Visualization
 -You can use visit for visualization
 ## To do
