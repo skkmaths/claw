@@ -16,11 +16,11 @@ This project implements a 2 dimensional finite volume scheme for linear advectio
 
 ## E.O.C. computation 
 - E.O.C. works only for smooth periodic test case
--$sh runcongs.sh "20 40 80 160"
+- $sh runcongs.sh "20 40 80 160"
 - While computing E.O.C. set -save_freq 0 to save computational time
--This will produce and error.txt file and can print the order of convergence as follows
--$python printrate -f erro.txt
--Both first and second -order schemes gives the expected E.O.C
+- This will produce and error.txt file and can print the order of convergence as follows
+- $python printrate -f erro.txt
+- Both first and second -order schemes gives the expected E.O.C
 ## Visualization
 -You can use visit for visualization
 ## To do
