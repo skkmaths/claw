@@ -333,8 +333,5 @@ void TwoDProblem::run ()
   compute_error(l1error);
   cout<<"Number of cells, h, l1error, WCT"<<endl;
   cout<< grid.nx* grid.ny <<" "<< grid.dx <<" "<< l1error<<" "<< duration_wall.count()<< endl;
-
   // WCT- Wall clock time
-
-
 }
