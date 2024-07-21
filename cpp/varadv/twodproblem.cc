@@ -118,9 +118,16 @@ double  TwoDProblem::initial_data( const double& x, const double& y)
 double TwoDProblem::xnumflux(const double& x, const double& y, const double& ul,
        const double& ur)
 {
-  vector<double> v(2);
-  v = advection_velocity(x,y);
- return  0.5*( xflux(x,y,ul) + xflux(x,y,ur) - 0.5 *fabs(v[0])*(ur-ul) );
+    vector<double> v(2);
+    v = advection_velocity(x,y);
+    double vplus = std::max(0.0,v[0]);
+    double vminus = std::min(0.0,v[0]);
+    return vplus * ul + vminus * ur;
+    /*
+    vector<double> v(2);
+    v = advection_velocity(x,y);
+    return  0.5*( xflux(x,y,ul) + xflux(x,y,ur) - 0.5 *fabs(v[0])*(ur-ul) );
+    */
 }
 
 // numerical flux in the y direction  across  horizontal wall
@@ -129,7 +136,14 @@ double TwoDProblem::ynumflux(const double& x, const double& y, const double& ul,
 {
     vector<double> v(2);
     v = advection_velocity(x,y);
-return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - 0.5* fabs(v[1])*(ur-ul));
+    double vplus = std::max(0.0, v[1]);
+    double vminus = std::min(0.0,v[1]);
+    return vplus * ul + vminus * ur;
+    /*
+    vector<double> v(2);
+    v = advection_velocity(x,y);
+    return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - 0.5* fabs(v[1])*(ur-ul));
+    */
 }
 
 //------------------------------------------------------------------------------
@@ -175,7 +189,7 @@ void TwoDProblem::initialize ()
    // set the initial data type
    // "smooth" for smooth and "nonsmooth" for discontinuous
    // "expo" for exponential distribution, smooth case
-   ic =  "expo";
+   ic =  "nonsmooth";
    sol.allocate(grid.nx+4, grid.ny+4); // with two ghost cells each side
    // initialize only real cells
    for (unsigned int i = 2; i < grid.nx + 2; ++i) 
