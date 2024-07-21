@@ -1,12 +1,14 @@
-## TwoDProblem Solver
-This project implements a 2 dimensional finite volume scheme for linear advection equation, with constant coefficients. This also uses OpenMP for parallelization. But, seems to be not efficient. The program takes several command-line arguments to configure the problem's parameters and performs computations accordingly.
+## TwoD Problem Solver
+This project implements a 2 dimensional finite volume scheme for linear advection equation, with varying coefficients. This also uses OpenMP for parallelization. But, seems to be not efficient. The program takes several command-line arguments to configure the problem's parameters and performs computations accordingly.
+## Reference
+- The example considered here is taken from page 460, solid body rotation,cha: Mulitidimensional scalar equations, of the book;  Randall J. Leveque, Finite volume methods for Hyperobolic problems, Cambridge text in applied Mathematics.
 ## Features
 - Solves two-dimensional problems with configurable grid size and time step.
 - Uses OpenMP for parallel computation to enhance performance.
 ## Requirements
 - C++ compiler (e.g., g++)
 - OpenMP support
-- This code is for the discretization of u_t+u_x+u_y = 0
+- This code is for the discretization of u_t+div(a(x,y)v) = 0, a = (a_1,a_2)
 ## Compile 
 - $make clean
 - $make 
