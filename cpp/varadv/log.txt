@@ -1,0 +1,4 @@
+Making grid for 2Dclw problem ...
+The directory "sol" is going to be formatted!
+Number of cells, h, l1error, WCT
+1638400 0.00078125 0.000383678 2335.22
