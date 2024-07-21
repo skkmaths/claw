@@ -331,7 +331,7 @@ void TwoDProblem::run ()
   std::chrono::duration<double> duration_wall = end_wall - start_wall;
   double l1error;
   compute_error(l1error);
-  cout<<"Number of cells, h, l1error, WCT"<<endl;
-  cout<< grid.nx* grid.ny <<" "<< grid.dx <<" "<< l1error<<" "<< duration_wall.count()<< endl;
+  cout<<"#cells, h, l1error, WCT"<<endl;
+  cout<< grid.nx * grid.ny <<" "<< grid.dx <<" "<< l1error<<" "<< duration_wall.count()<< endl;
   // WCT- Wall clock time
 }
