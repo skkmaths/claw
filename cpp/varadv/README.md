@@ -8,7 +8,7 @@ This project implements a 2 dimensional finite volume scheme for linear advectio
 ## Requirements
 - C++ compiler (e.g., g++)
 - OpenMP support
-- This code is for the discretization of u_t+div(a(x,y)v) = 0, a = (a_1,a_2)
+- This code is for the discretization of $u_t + div(a(x,y)u) = 0, a = (a_1,a_2)$
 ## Compile 
 - $make clean
 - $make 
