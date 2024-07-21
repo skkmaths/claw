@@ -11,7 +11,7 @@
 #include <iomanip> // for std::setprecision
 #include <chrono>
 #include <algorithm> // for std::min
-
+#include <cmath>
 using namespace std;
 // You should set the CFL according to your problem.
 #define SIGN(a) (((a)<0) ? -1:1)
@@ -84,11 +84,10 @@ double TwoDProblem::yflux(const double& x, const double& y, const double& u)
 }
 double  TwoDProblem::initial_data( const double& x, const double& y)
 { 
-    // solid body rotation
-    double r = sqrt( pow(x+0.45,2)+pow(y,2));
+    
     // Discontinuous  initial data
-    if (ic == "nonsmooth" )
-    {
+    if (ic == "nonsmooth" ) // solid body rotation
+    {double r = sqrt( pow(x+0.45,2)+pow(y,2));
      if ( x> 0.1 & x<0.6 & y>-0.25 & y< 0.25  ) 
      {
       return 1.0;
@@ -100,10 +99,14 @@ double  TwoDProblem::initial_data( const double& x, const double& y)
      else return 0.0;
     }
     // Smooth initial data
-    else if ( ic == "smooth")
-    {
+    else if ( ic == "smooth") // solid body rotation
+    {double r = sqrt( pow(x+0.45,2)+pow(y,2));
      if ( r < 0.35){ return 1-r/0.35; }
      else return 0.0;
+    }
+    else if( ic == "expo")
+    {
+        return 1.0 + exp(-100.0*( pow(x-0.5,2) + pow(y,2) ));
     }
     else 
     {cout<<" Unknown ic"<<endl;
@@ -171,7 +174,8 @@ void TwoDProblem::initialize ()
 {    
    // set the initial data type
    // "smooth" for smooth and "nonsmooth" for discontinuous
-   ic =  "smooth";
+   // "expo" for exponential distribution, smooth case
+   ic =  "expo";
    sol.allocate(grid.nx+4, grid.ny+4); // with two ghost cells each side
    // initialize only real cells
    for (unsigned int i = 2; i < grid.nx + 2; ++i) 
@@ -318,8 +322,8 @@ std::vector<double> TwoDProblem::findMinMax()
 // Compute error in the case of smooth test case
 // Final time solution and initial condition
 // are assumed to be the same here
-void TwoDProblem::compute_error(double& l1error)
 //-----------------------------------------------------------------------------
+void TwoDProblem::compute_error(double& l1error)
 {    l1error = 0.0;
     for (unsigned int i = 2; i < grid.nx+2; ++i)
       {

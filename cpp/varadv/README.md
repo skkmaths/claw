@@ -22,7 +22,7 @@ This project implements a 2 dimensional finite volume scheme for linear advectio
 - While computing E.O.C. set -save_freq 0 to save computational time
 - This will produce and error.txt file and can print the order of convergence as follows
 - $python printrate -f erro.txt
-- Both first and second -order schemes gives the expected E.O.C
+- Both first and second -order schemes gives the expected E.O.C, with the "expo" test case.
 ## Visualization
 -You can use visit for visualization
 ## To do
