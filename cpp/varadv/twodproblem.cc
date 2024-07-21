@@ -83,8 +83,33 @@ double TwoDProblem::yflux(const double& x, const double& y, const double& u)
 	return -2*x*u;
 }
 double  TwoDProblem::initial_data( const double& x, const double& y)
-{
-return sin(2.0 * M_PI * x)* sin(2.0 * M_PI * y);
+{ 
+    // solid body rotation
+    double r = sqrt( pow(x+0.45,2)+pow(y,2));
+    // Discontinuous  initial data
+    if (ic == "nonsmooth" )
+    {
+     if ( x> 0.1 & x<0.6 & y>-0.25 & y< 0.25  ) 
+     {
+      return 1.0;
+     }
+     else if ( r < 0.35)
+     {
+      return 1-r/0.35;
+     }
+     else return 0.0;
+    }
+    // Smooth initial data
+    else if ( ic == "smooth")
+    {
+     if ( r < 0.35){ return 1-r/0.35; }
+     else return 0.0;
+    }
+    else 
+    {cout<<" Unknown ic"<<endl;
+     abort();
+    }
+
 }
 // Numerical  flux in the x direction   across vertical wall
 double TwoDProblem::xnumflux(const double& x, const double& y, const double& ul,
@@ -110,9 +135,9 @@ return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - 0.5* fabs(v[1])*(ur-ul));
 void TwoDProblem::make_grid ()
 {
    grid.xmax = 1.0;
-   grid.xmin = 0.0;
+   grid.xmin = -1.0;
    grid.ymax = 1.0;
-   grid.ymin = 0.0;
+   grid.ymin = -1.0;
    grid.nx = nx;
    grid.ny = ny;
    grid.dx = (grid.xmax-grid.xmin)/grid.nx;
@@ -143,7 +168,10 @@ void TwoDProblem::make_grid ()
 // allocate memory and set initial condition
 //------------------------------------------------------------------------------
 void TwoDProblem::initialize ()
-{
+{    
+   // set the initial data type
+   // "smooth" for smooth and "nonsmooth" for discontinuous
+   ic =  "smooth";
    sol.allocate(grid.nx+4, grid.ny+4); // with two ghost cells each side
    // initialize only real cells
    for (unsigned int i = 2; i < grid.nx + 2; ++i) 
@@ -254,17 +282,19 @@ void TwoDProblem::savesol(double t, Matrix& sol)
     file.close();
     fileid++;
 }
-void TwoDProblem::max_speed()
+void TwoDProblem::compute_dt()
 {
- double speed_max = -1.0e20;
- vector<double>
+ double speed = -1.0e20;
+ vector<double> v(2);
  for (unsigned int i = 0; i < grid.nx; ++i)
       {
         for (unsigned int j = 0; j < grid.ny; ++j)
         {   
-
-            speed_max = max( )
-        
+          v = advection_velocity(grid.xc(i,j), grid.yc(i,j));
+          speed = max( speed, fabs(v[0])/grid.dx + fabs(v[1])/grid.dy + 1e-14 );
+        }
+      }
+ dt = cfl/speed;
 }
 std::vector<double> TwoDProblem::findMinMax() 
 {
@@ -287,7 +317,7 @@ std::vector<double> TwoDProblem::findMinMax()
 //-----------------------------------------------------------------------------
 // Compute error in the case of smooth test case
 // Final time solution and initial condition
-// are the same here
+// are assumed to be the same here
 void TwoDProblem::compute_error(double& l1error)
 //-----------------------------------------------------------------------------
 {    l1error = 0.0;
@@ -324,7 +354,7 @@ void TwoDProblem::solve(){
     double time  = 0.0; // initial time
     unsigned iter = 0;
     fileid = 0;
-    dt  = cfl * grid.dx; // time step
+    compute_dt(); // dt independent of solution, so need to compute only once
     res.allocate(grid.nx+4, grid.ny+4);
     sol_old.allocate(grid.nx+4, grid.ny+4);
 	savesol(0.0, sol); // save initial condition

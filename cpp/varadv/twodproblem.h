@@ -27,6 +27,7 @@ class TwoDProblem
       double cfl;
       unsigned int save_freq;
       string scheme;
+      string ic ;
       double lam_x;
       double lam_y;
       void make_grid ();
@@ -46,6 +47,6 @@ class TwoDProblem
       void compute_error(double& l1error);
       void apply_ssprk2();
       void apply_euler();
-      void max_speed();
+      void compute_dt();
       double reconstruct(const double& sol_ll,const double& sol_l,const double& sol_r);
 };
