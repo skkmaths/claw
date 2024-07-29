@@ -173,6 +173,7 @@ public:
     void printCentroidsOfTriangles() const {
         for (const auto& tri : triangles) {
             std::cout << "Triangle centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
+            std::cout<<"Area = "<<tri.area<<std::endl;
         }
     }
 
