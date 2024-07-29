@@ -9,7 +9,7 @@
 // Node structure to represent a mesh node
 struct Node {
     double x, y, z;  // Coordinates of the node
-
+    int id;
     // Operator for comparing Node pointers (for unordered_map key)
     bool operator==(const Node& other) const {
         return x == other.x && y == other.y && z == other.z;
@@ -85,6 +85,7 @@ public:
 
         nodes.resize(nodeTags.size());
         for (std::size_t i = 0; i < nodeTags.size(); ++i) {
+            nodes[i].id = static_cast<int>(i);
             nodes[i].x = coord[3 * i];
             nodes[i].y = coord[3 * i + 1];
             nodes[i].z = coord[3 * i + 2];
@@ -187,6 +188,7 @@ public:
         std::cout << "Triangle ID: " << tri.id << "\n";
         std::cout << "Triangle centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
         std::cout << "Triangle area: " << tri.area << "\n";
+        std::cout << "Triangle nodes indices"<< tri.nodes[0]->id << " "<<tri.nodes[1]->id <<" "<< tri.nodes[2]->id<<std::endl;
     }
 }
 
@@ -197,7 +199,6 @@ void printFaceInfo() const {
     for (std::size_t i = 0; i < faces.size(); ++i) {
         const auto& face = faces[i];
         std::cout << "Face " << i << ":\n";
-        
         // Print face nodes
         std::cout << "  Nodes: ";
         for (const auto& node : face.nodes) {
@@ -228,13 +229,69 @@ void printFaceInfo() const {
 
 };
 
+// Function to write initial condition to a VTK file
+    void savesol(const std::string &filename, const Mesh& mesh, std::vector<double> solution) {
+        std::ofstream file(filename);
+        file << "# vtk DataFile Version 3.0\n";
+        file << "Advection Initial Condition\n";
+        file << "ASCII\n";
+        file << "DATASET UNSTRUCTURED_GRID\n";
+
+        // Write points
+        file << "POINTS " << mesh.nodes.size() << " float\n";
+        for (const auto &node : mesh.nodes) {
+            file << node.x << " " << node.y << " " << node.z << "\n";
+        }
+
+        // Write cells
+        file << "CELLS " << mesh.triangles.size() << " " << 4 * mesh.triangles.size() << "\n";
+        for (const auto &tri : mesh.triangles) {
+            file << "3 " << tri.nodes[0]->id << " " << tri.nodes[1]->id << " " << tri.nodes[2]->id << "\n";
+        }
+
+        // Write cell types
+        file << "CELL_TYPES " << mesh.triangles.size() << "\n";
+        for (std::size_t i = 0; i < mesh.triangles.size(); ++i) {
+            file << "5\n"; // VTK_TRIANGLE
+        }
+
+        // Write cell data
+        file << "CELL_DATA " << mesh.triangles.size() << "\n";
+        file << "SCALARS sol float 1\n";
+        file << "LOOKUP_TABLE default\n";
+        for (const auto &value : solution) {
+            file << value << "\n";
+        }
+
+        file.close();
+    }
+// Initial condition function
+double initialCondition(double x, double y) {
+    return exp(-30 * ((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)));
+}
+void initialize(const std::vector<Triangle> triangles, std::vector<double>& solution) {
+    solution.resize(triangles.size());
+    for (const auto &tri : triangles)
+    {
+    int i = tri.id;
+    solution[i] = initialCondition(tri.centroid.x,tri.centroid.y);
+    }
+    
+}
+void update_solution(std::vector<double> &sol,const double dt, const Mesh &mesh)
+{
+   for(std::size_t i = 0; i < sol.size(); ++i) {
+        sol[i] += 1;
+    }
+}
+
 // Main function
 int main() {
     gmsh::initialize();
     gmsh::model::add("t1");
 
     // Define geometry
-    double lc = 1;
+    double lc = 0.1;
     gmsh::model::geo::addPoint(0, 0, 0, lc, 1);
     gmsh::model::geo::addPoint(1, 0, 0, lc, 2);
     gmsh::model::geo::addPoint(1, 1, 0, lc, 3);
@@ -253,10 +310,16 @@ int main() {
 
     Mesh mesh;
     mesh.readFromGmsh();
-
+    double dt;
+    dt = 0.1;
+    std::vector<double> solution;
+    initialize(mesh.triangles, solution);
+    update_solution(solution, dt, mesh);
+    // Save initial conditions to VTK files
+    savesol("solution.vtk", mesh, solution);
     // Print centroids and face information
-    mesh.printCentroidsOfTriangles();
-    mesh.printFaceInfo();
+    //mesh.printCentroidsOfTriangles();
+    //mesh.printFaceInfo();
 
     gmsh::finalize();
     return 0;
