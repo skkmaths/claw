@@ -2,9 +2,9 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
-#include <algorithm>
+#include <cmath>
+#include <fstream>
 #include <functional>
-
 
 // Node structure to represent a mesh node
 struct Node {
@@ -14,6 +14,29 @@ struct Node {
 // Triangle structure to represent a mesh element
 struct Triangle {
     std::vector<std::size_t> nodeIndices; // Indices of the nodes that form the triangle
+    double area; // Area of the triangle
+    Node centroid; // Centroid of the triangle
+
+    // Constructor to compute area and centroid
+    Triangle() : area(0.0), centroid{0.0, 0.0, 0.0} {}
+
+    void computeAreaAndCentroid(const std::vector<Node>& nodes) {
+        const auto& p0 = nodes[nodeIndices[0]];
+        const auto& p1 = nodes[nodeIndices[1]];
+        const auto& p2 = nodes[nodeIndices[2]];
+
+        // Calculate area using the cross product of vectors
+        double x0 = p1.x - p0.x;
+        double y0 = p1.y - p0.y;
+        double x1 = p2.x - p0.x;
+        double y1 = p2.y - p0.y;
+        area = std::abs(x0 * y1 - y0 * x1) / 2.0;
+
+        // Calculate centroid
+        centroid.x = (p0.x + p1.x + p2.x) / 3.0;
+        centroid.y = (p0.y + p1.y + p2.y) / 3.0;
+        centroid.z = (p0.z + p1.z + p2.z) / 3.0;
+    }
 };
 
 // Face structure to represent a mesh face
@@ -22,6 +45,8 @@ struct Face {
     std::size_t leftTriangle;             // Index of the left triangle
     std::size_t rightTriangle;            // Index of the right triangle (set to -1 if boundary)
     bool isBoundary;                      // Flag to indicate if the face is a boundary face
+    Node normalLeft;                     // Normal vector for left triangle
+    Node normalRight;                    // Normal vector for right triangle
 
     Face(const std::vector<std::size_t>& nodes, std::size_t left, std::size_t right)
         : nodeIndices(nodes), leftTriangle(left), rightTriangle(right), isBoundary(right == -1) {}
@@ -67,6 +92,7 @@ public:
                 for (std::size_t j = 0; j < elementTags[i].size(); ++j) {
                     Triangle tri;
                     tri.nodeIndices = {elementNodeTags[i][3 * j] - 1, elementNodeTags[i][3 * j + 1] - 1, elementNodeTags[i][3 * j + 2] - 1};
+                    tri.computeAreaAndCentroid(nodes);
                     triangles.push_back(tri);
                 }
             }
@@ -93,61 +119,110 @@ public:
                 }
             }
         }
+
+        computeFaceNormals();
+    }
+
+    // Function to compute normal vectors for faces
+    void computeFaceNormals() {
+        for (auto& face : faces) {
+            const auto& leftTri = triangles[face.leftTriangle];
+            Node leftNormal = computeNormalToFace(face.nodeIndices, leftTri.centroid);
+
+            face.normalLeft = leftNormal;
+
+            if (!face.isBoundary) {
+                const auto& rightTri = triangles[face.rightTriangle];
+                Node rightNormal = computeNormalToFace(face.nodeIndices, rightTri.centroid);
+
+                face.normalRight = rightNormal;
+            }
+        }
+    }
+
+    // Function to compute normal vector to a face from the centroid of a triangle
+    Node computeNormalToFace(const std::vector<std::size_t>& faceNodes, const Node& centroid) const {
+        const auto& p0 = nodes[faceNodes[0]];
+        const auto& p1 = nodes[faceNodes[1]];
+
+        // Vector from centroid to a point on the face
+        Node vector;
+        vector.x = centroid.x - (p0.x + p1.x) / 2.0;
+        vector.y = centroid.y - (p0.y + p1.y) / 2.0;
+        vector.z = centroid.z - (p0.z + p1.z) / 2.0;
+
+        // Calculate the normal (perpendicular to the face) in 2D
+        double length = std::sqrt(vector.x * vector.x + vector.y * vector.y);
+        if (length != 0) {
+            vector.x /= length;
+            vector.y /= length;
+        }
+
+        return vector;
     }
 
     // Function to print centroids of all triangles
     void printCentroidsOfTriangles() const {
         for (const auto& tri : triangles) {
-            double centroidX = 0, centroidY = 0, centroidZ = 0;
-            for (const auto& nodeIndex : tri.nodeIndices) {
-                centroidX += nodes[nodeIndex].x;
-                centroidY += nodes[nodeIndex].y;
-                centroidZ += nodes[nodeIndex].z;
-            }
-            centroidX /= 3;
-            centroidY /= 3;
-            centroidZ /= 3;
-            std::cout << "Triangle centroid: (" << centroidX << ", " << centroidY << ", " << centroidZ << ")\n";
+            std::cout << "Triangle centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
         }
     }
 
-    // Function to print midpoints of all faces and the centroids of the left and right triangles
-    void printFaceMidpointsAndTriangleCentroids() const {
-        for (const auto& face : faces) {
-            double midpointX = (nodes[face.nodeIndices[0]].x + nodes[face.nodeIndices[1]].x) / 2.0;
-            double midpointY = (nodes[face.nodeIndices[0]].y + nodes[face.nodeIndices[1]].y) / 2.0;
-            double midpointZ = (nodes[face.nodeIndices[0]].z + nodes[face.nodeIndices[1]].z) / 2.0;
-            std::cout << "Face midpoint: (" << midpointX << ", " << midpointY << ", " << midpointZ << ")\n";
+    // Function to print face information
+    void printFaceInfo() const {
+        for (std::size_t i = 0; i < faces.size(); ++i) {
+            const auto& face = faces[i];
 
-            const auto& leftTri = triangles[face.leftTriangle];
-            double leftCentroidX = 0, leftCentroidY = 0, leftCentroidZ = 0;
-            for (const auto& nodeIndex : leftTri.nodeIndices) {
-                leftCentroidX += nodes[nodeIndex].x;
-                leftCentroidY += nodes[nodeIndex].y;
-                leftCentroidZ += nodes[nodeIndex].z;
-            }
-            leftCentroidX /= 3;
-            leftCentroidY /= 3;
-            leftCentroidZ /= 3;
-            std::cout << "  Left triangle centroid: (" << leftCentroidX << ", " << leftCentroidY << ", " << leftCentroidZ << ")\n";
-
+            std::cout << "Face " << i << ":\n";
+            std::cout << "  Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
+            std::cout << "  Left Triangle Index: " << face.leftTriangle << "\n";
+            std::cout << "  Right Triangle Index: " << (face.isBoundary ? "N/A" : std::to_string(face.rightTriangle)) << "\n";
+            std::cout << "  Normal Left: (" << face.normalLeft.x << ", " << face.normalLeft.y << ")\n";
             if (!face.isBoundary) {
-                const auto& rightTri = triangles[face.rightTriangle];
-                double rightCentroidX = 0, rightCentroidY = 0, rightCentroidZ = 0;
-                for (const auto& nodeIndex : rightTri.nodeIndices) {
-                    rightCentroidX += nodes[nodeIndex].x;
-                    rightCentroidY += nodes[nodeIndex].y;
-                    rightCentroidZ += nodes[nodeIndex].z;
-                }
-                rightCentroidX /= 3;
-                rightCentroidY /= 3;
-                rightCentroidZ /= 3;
-                std::cout << "  Right triangle centroid: (" << rightCentroidX << ", " << rightCentroidY << ", " << rightCentroidZ << ")\n";
+                std::cout << "  Normal Right: (" << face.normalRight.x << ", " << face.normalRight.y << ")\n";
             }
         }
     }
 };
 
+// Function to save triangles to a VTK file
+void saveTrianglesToVTK(const Mesh& mesh) {
+    std::ofstream file("triangles.vtk");
+    file << "# vtk DataFile Version 2.0\n";
+    file << "Triangles\n";
+    file << "ASCII\n";
+    file << "DATASET POLYDATA\n";
+    file << "POINTS " << mesh.nodes.size() << " float\n";
+    for (const auto& node : mesh.nodes) {
+        file << node.x << " " << node.y << " " << node.z << "\n";
+    }
+    file << "TRIANGLES " << mesh.triangles.size() << " " << mesh.triangles.size() * 4 << "\n";
+    for (const auto& tri : mesh.triangles) {
+        file << "3 " << tri.nodeIndices[0] << " " << tri.nodeIndices[1] << " " << tri.nodeIndices[2] << "\n";
+    }
+    file.close();
+}
+
+// Function to save solution vector to a VTK file
+void saveSolutionVectorToVTK(const Mesh& mesh) {
+    std::ofstream file("solution.vtk");
+    file << "# vtk DataFile Version 2.0\n";
+    file << "Solution Vector\n";
+    file << "ASCII\n";
+    file << "DATASET POLYDATA\n";
+    file << "POINTS " << mesh.nodes.size() << " float\n";
+    for (const auto& node : mesh.nodes) {
+        file << node.x << " " << node.y << " " << node.z << "\n";
+    }
+    file << "POINT_DATA " << mesh.nodes.size() << "\n";
+    file << "SCALARS solution float 1\n";
+    file << "LOOKUP_TABLE default\n";
+    for (const auto& tri : mesh.triangles) {
+        Node centroid = tri.centroid;
+        file << centroid.x << "\n";
+    }
+    file.close();
+}
 
 int main(int argc, char **argv) {
     try {
@@ -175,8 +250,11 @@ int main(int argc, char **argv) {
         Mesh mesh;
         mesh.readFromGmsh();
         mesh.printCentroidsOfTriangles();
-        mesh.printFaceMidpointsAndTriangleCentroids();
-         // Create solution vector and save initial condition at centroids
+        mesh.printFaceInfo();
+
+        // Save initial conditions to VTK files
+        saveTrianglesToVTK(mesh);
+        saveSolutionVectorToVTK(mesh);
 
         gmsh::finalize();
     } catch (const std::exception &e) {
