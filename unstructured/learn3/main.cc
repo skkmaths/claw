@@ -4,14 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <functional>
-#include <vtkSmartPointer.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkPoints.h>
-#include <vtkCellArray.h>
-#include <vtkTriangle.h>
-#include <vtkDoubleArray.h>
-#include <vtkPointData.h>
-#include <vtkXMLUnstructuredGridWriter.h>
+
 
 // Node structure to represent a mesh node
 struct Node {
@@ -154,40 +147,7 @@ public:
         }
     }
 };
-// Function to save solution to VTK file
-void saveSolutionToVTK(const std::vector<Node>& nodes, const std::vector<Triangle>& triangles, const std::vector<double>& solution) {
-    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-    for (const auto& node : nodes) {
-        points->InsertNextPoint(node.x, node.y, node.z);
-    }
 
-    vtkSmartPointer<vtkUnstructuredGrid> grid = vtkSmartPointer<vtkUnstructuredGrid>::New();
-    grid->SetPoints(points);
-
-    vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
-    for (const auto& tri : triangles) {
-        vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
-        triangle->GetPointIds()->SetId(0, tri.nodeIndices[0]);
-        triangle->GetPointIds()->SetId(1, tri.nodeIndices[1]);
-        triangle->GetPointIds()->SetId(2, tri.nodeIndices[2]);
-        cells->InsertNextCell(triangle);
-    }
-    grid->SetCells(VTK_TRIANGLE, cells);
-
-    vtkSmartPointer<vtkDoubleArray> values = vtkSmartPointer<vtkDoubleArray>::New();
-    values->SetName("Solution");
-    values->SetNumberOfComponents(1);
-    values->SetNumberOfTuples(solution.size());
-    for (std::size_t i = 0; i < solution.size(); ++i) {
-        values->SetValue(i, solution[i]);
-    }
-    grid->GetPointData()->SetScalars(values);
-
-    vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
-    writer->SetFileName("solution.vtu");
-    writer->SetInputData(grid);
-    writer->Write();
-}
 
 int main(int argc, char **argv) {
     try {
@@ -217,22 +177,6 @@ int main(int argc, char **argv) {
         mesh.printCentroidsOfTriangles();
         mesh.printFaceMidpointsAndTriangleCentroids();
          // Create solution vector and save initial condition at centroids
-        std::vector<double> solution(mesh.triangles.size());
-        for (std::size_t i = 0; i < mesh.triangles.size(); ++i) {
-            const auto& tri = mesh.triangles[i];
-            double centroidX = 0, centroidY = 0, centroidZ = 0;
-            for (const auto& nodeIndex : tri.nodeIndices) {
-                centroidX += mesh.nodes[nodeIndex].x;
-                centroidY += mesh.nodes[nodeIndex].y;
-                centroidZ += mesh.nodes[nodeIndex].z;
-            }
-            centroidX /= 3;
-            centroidY /= 3;
-            centroidZ /= 3;
-            solution[i] = initialCondition(centroidX, centroidY, centroidZ); // Assuming initialCondition is defined
-        }
-
-        saveSolutionToVTK(mesh.nodes, mesh.triangles, solution);
 
         gmsh::finalize();
     } catch (const std::exception &e) {
