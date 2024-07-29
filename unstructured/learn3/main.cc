@@ -47,7 +47,7 @@ struct Face {
     bool isBoundary;                      // Flag to indicate if the face is a boundary face
     Node normalLeft;                     // Normal vector for left triangle
     Node normalRight;                    // Normal vector for right triangle
-    std::vector<double> midpoint;
+    Node midpoint;
 
     Face(const std::vector<std::size_t>& nodes, std::size_t left, std::size_t right)
         : nodeIndices(nodes), leftTriangle(left), rightTriangle(right), isBoundary(right == -1) {}
@@ -105,59 +105,73 @@ public:
     // Function to create faces from triangles
     void createFaces() {
         for (std::size_t i = 0; i < triangles.size(); ++i) {
-            const auto& tri = triangles[i];
-            for (std::size_t j = 0; j < 3; ++j) {
+           const auto& tri = triangles[i];
+             for (std::size_t j = 0; j < 3; ++j) {
                 std::pair<std::size_t, std::size_t> faceKey = std::minmax(tri.nodeIndices[j], tri.nodeIndices[(j + 1) % 3]);
                 if (faceMap.find(faceKey) == faceMap.end()) {
-                    // New face
-                    faces.emplace_back(std::vector<std::size_t>{faceKey.first, faceKey.second}, i, -1);
-                    faceMap[faceKey] = faces.size() - 1;
-                } else {
-                    // Existing face, update right triangle
-                    auto& face = faces[faceMap[faceKey]];
-                    face.rightTriangle = i;
-                    face.isBoundary = false;
-                }
+                // New face
+                std::size_t node1 = faceKey.first;
+                std::size_t node2 = faceKey.second;
+                Node midpoint;
+                midpoint.x = (nodes[node1].x + nodes[node2].x) / 2.0;
+                midpoint.y = (nodes[node1].y + nodes[node2].y) / 2.0;
+                midpoint.z = (nodes[node1].z + nodes[node2].z) / 2.0;
+                faces.emplace_back(std::vector<std::size_t>{node1, node2}, i, -1);
+                faces.back().midpoint = midpoint;
+                faceMap[faceKey] = faces.size() - 1;
+            } else {
+                // Existing face, update right triangle
+                auto& face = faces[faceMap[faceKey]];
+                face.rightTriangle = i;
+                face.isBoundary = false;
             }
         }
-
-        computeFaceNormals();
     }
+
+    computeFaceNormals();
+}
 
     // Function to compute normal vectors for faces
     void computeFaceNormals() {
         for (auto& face : faces) {
             const auto& leftTri = triangles[face.leftTriangle];
             Node leftNormal = computeNormalToFace(face.nodeIndices, leftTri.centroid);
-
             face.normalLeft = leftNormal;
-
             if (!face.isBoundary) {
                 const auto& rightTri = triangles[face.rightTriangle];
                 Node rightNormal = computeNormalToFace(face.nodeIndices, rightTri.centroid);
-
                 face.normalRight = rightNormal;
             }
         }
     }
 
     // Function to compute normal vector to a face from the centroid of a triangle
-    Node computeNormalToFace(const std::vector<std::size_t>& faceNodes, const Node& centroid) const {
+   Node computeNormalToFace(const std::vector<std::size_t>& faceNodes, const Node& centroid) const {
         const auto& p0 = nodes[faceNodes[0]];
         const auto& p1 = nodes[faceNodes[1]];
 
         // Vector from centroid to a point on the face
+        Node foot ;
         Node vector;
-        vector.x = centroid.x - (p0.x + p1.x) / 2.0;
-        vector.y = centroid.y - (p0.y + p1.y) / 2.0;
-        vector.z = centroid.z - (p0.z + p1.z) / 2.0;
-
+        double xbar = p1.x-p0.x;
+        double ybar = p1.y-p0.y;
+        double lam = ( xbar*(centroid.x-p1.x) + ybar*(centroid.y-p1.y) )/ (xbar*xbar +ybar*ybar);
+        foot.x = p1.x +(p1.x-p0.x)*lam;
+        foot.y = p1.y + (p1.y-p0.y)*lam;
+        vector.x = centroid.x -foot.x;
+        vector.y = centroid.y - foot.y;
+        vector.z = centroid.z - foot.y;
         // Calculate the normal (perpendicular to the face) in 2D
         double length = std::sqrt(vector.x * vector.x + vector.y * vector.y);
         if (length != 0) {
             vector.x /= length;
             vector.y /= length;
         }
+        /*
+        std::cout<<"points"<< "( "<< p0.x <<","<<p0.y<<")"<< " and"<< "( "<< p1.x <<","<<p1.y<<")" <<std::endl;
+        std::cout<<"foot" <<  "( "<<foot.x <<","<<foot.y<<")"<<std::endl;
+        std::cout<<"vector"<< "( "<< vector.x <<","<<vector.y<<")"<<std::endl;
+        */
 
         return vector;
     }
@@ -168,22 +182,22 @@ public:
             std::cout << "Triangle centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
         }
     }
-
+    // Function to print face information
     // Function to print face information
     void printFaceInfo() const {
-        for (std::size_t i = 0; i < faces.size(); ++i) {
-            const auto& face = faces[i];
-
-            std::cout << "Face " << i << ":\n";
-            std::cout << "  Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
-            std::cout << "  Left Triangle Index: " << face.leftTriangle << "\n";
-            std::cout << "  Right Triangle Index: " << (face.isBoundary ? "N/A" : std::to_string(face.rightTriangle)) << "\n";
-            std::cout << "  Normal Left: (" << face.normalLeft.x << ", " << face.normalLeft.y << ")\n";
-            if (!face.isBoundary) {
-                std::cout << "  Normal Right: (" << face.normalRight.x << ", " << face.normalRight.y << ")\n";
-            }
+        for (const auto& face : faces) {
+        std::cout << "Face " << (&face - &faces[0]) << ":\n"; // Calculate the index of the face
+        std::cout << "  Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
+        std::cout << "  Left Triangle Index: " << face.leftTriangle << "\n";
+        std::cout << "  Right Triangle Index: " << (face.isBoundary ? "N/A" : std::to_string(face.rightTriangle)) << "\n";
+        std::cout << "  Normal Left: (" << face.normalLeft.x << ", " << face.normalLeft.y << ")\n";
+        if (!face.isBoundary) {
+            std::cout << "  Normal Right: (" << face.normalRight.x << ", " << face.normalRight.y << ")\n";
         }
+        std::cout << "  Midpoint: (" << face.midpoint.x << ", " << face.midpoint.y << ", " << face.midpoint.z << ")\n";
     }
+}
+
 };
 
  // Function to write initial condition to a VTK file
@@ -241,7 +255,7 @@ int main(int argc, char **argv) {
         gmsh::model::add("unit_square");
 
         // Define the geometry: a unit square
-        double lc = 0.02; // Decreased characteristic length for more triangles
+        double lc = 1; // Decreased characteristic length for more triangles
         gmsh::model::geo::addPoint(0, 0, 0, lc, 1);
         gmsh::model::geo::addPoint(1, 0, 0, lc, 2);
         gmsh::model::geo::addPoint(1, 1, 0, lc, 3);
@@ -260,8 +274,8 @@ int main(int argc, char **argv) {
 
         Mesh mesh;
         mesh.readFromGmsh();
-        //mesh.printCentroidsOfTriangles();
-       // mesh.printFaceInfo();
+        mesh.printCentroidsOfTriangles();
+        mesh.printFaceInfo();
         std::vector<double> solution;
         initialize(mesh, solution);
         // Save initial conditions to VTK files
