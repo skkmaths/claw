@@ -181,10 +181,8 @@ public:
 
         return vector;
     }
-}
-
-
 };
+
 
 // Function to write initial condition to a VTK file
     void savesol(const std::string &filename, const Mesh& mesh, std::vector<double> solution) {
@@ -226,6 +224,7 @@ public:
 double initialCondition(double x, double y) {
     return exp(-30 * ((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)));
 }
+// intialize the solution
 void initialize(const std::vector<Triangle> triangles, std::vector<double>& solution) {
     solution.resize(triangles.size());
     for (const auto &tri : triangles)
@@ -235,13 +234,13 @@ void initialize(const std::vector<Triangle> triangles, std::vector<double>& solu
     }
     
 }
+// function to update the solution by time step
 void update_solution(std::vector<double> &sol,const double dt, const Mesh &mesh)
 {
    for(std::size_t i = 0; i < sol.size(); ++i) {
         sol[i] += 1;
     }
 }
-
 // Main function
 int main() {
     gmsh::initialize();
@@ -272,12 +271,7 @@ int main() {
     std::vector<double> solution;
     initialize(mesh.triangles, solution);
     update_solution(solution, dt, mesh);
-    // Save initial conditions to VTK files
     savesol("solution.vtk", mesh, solution);
-    // Print centroids and face information
-    //mesh.printCentroidsOfTriangles();
-    //mesh.printFaceInfo();
-
     gmsh::finalize();
     return 0;
 }
