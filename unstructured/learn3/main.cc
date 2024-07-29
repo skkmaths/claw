@@ -9,10 +9,16 @@
 // Node structure to represent a mesh node
 struct Node {
     double x, y, z;  // Coordinates of the node
+
+    // Operator for comparing Node pointers (for unordered_map key)
+    bool operator==(const Node& other) const {
+        return x == other.x && y == other.y && z == other.z;
+    }
 };
 
 // Triangle structure to represent a mesh element
 struct Triangle {
+    int id;
     std::vector<Node*> nodes; // Pointers to the nodes that form the triangle
     double area; // Area of the triangle
     Node centroid; // Centroid of the triangle
@@ -53,13 +59,13 @@ struct Face {
         : nodes(nodes), leftTriangle(left), rightTriangle(right), isBoundary(right == nullptr) {}
 };
 
-// Custom hash function for std::pair
+// Custom hash function for std::pair of indices
 struct pair_hash {
     template <class T1, class T2>
     std::size_t operator () (const std::pair<T1, T2> &pair) const {
         auto hash1 = std::hash<T1>{}(pair.first);
         auto hash2 = std::hash<T2>{}(pair.second);
-        return hash1 ^ hash2;
+        return hash1 ^ (hash2 << 1);
     }
 };
 
@@ -69,7 +75,7 @@ public:
     std::vector<Node> nodes;              // List of nodes in the mesh
     std::vector<Triangle> triangles;      // List of triangles in the mesh
     std::vector<Face> faces;              // List of faces in the mesh
-    std::unordered_map<std::pair<Node*, Node*>, Face*, pair_hash> faceMap; // Mapping from node pairs to face pointers
+    std::unordered_map<std::pair<std::size_t, std::size_t>, std::size_t, pair_hash> faceMap; // Mapping from node indices to face indices
 
     // Function to read mesh data from Gmsh
     void readFromGmsh() {
@@ -92,6 +98,7 @@ public:
             if (elementTypes[i] == 2) { // Type 2 corresponds to 2D triangular elements
                 for (std::size_t j = 0; j < elementTags[i].size(); ++j) {
                     Triangle tri;
+                    tri.id = static_cast<int>(triangles.size()); // Assign ID based on current size of triangles
                     tri.nodes = {&nodes[elementNodeTags[i][3 * j] - 1], &nodes[elementNodeTags[i][3 * j + 1] - 1], &nodes[elementNodeTags[i][3 * j + 2] - 1]};
                     tri.computeAreaAndCentroid();
                     triangles.push_back(tri);
@@ -104,25 +111,30 @@ public:
 
     // Function to create faces from triangles
     void createFaces() {
-        for (auto& tri : triangles) {
+        for (std::size_t i = 0; i < triangles.size(); ++i) {
+            auto& tri = triangles[i];
             for (std::size_t j = 0; j < 3; ++j) {
-                auto faceKey = std::minmax(tri.nodes[j], tri.nodes[(j + 1) % 3]);
+                std::size_t nodeIndex1 = std::find(nodes.begin(), nodes.end(), *tri.nodes[j]) - nodes.begin();
+                std::size_t nodeIndex2 = std::find(nodes.begin(), nodes.end(), *tri.nodes[(j + 1) % 3]) - nodes.begin();
+                std::pair<std::size_t, std::size_t> faceKey = std::minmax(nodeIndex1, nodeIndex2);
+
                 if (faceMap.find(faceKey) == faceMap.end()) {
                     // New face
-                    Node* node1 = faceKey.first;
-                    Node* node2 = faceKey.second;
+                    Node* node1 = tri.nodes[j];
+                    Node* node2 = tri.nodes[(j + 1) % 3];
                     Node midpoint;
                     midpoint.x = (node1->x + node2->x) / 2.0;
                     midpoint.y = (node1->y + node2->y) / 2.0;
                     midpoint.z = (node1->z + node2->z) / 2.0;
+                    
                     faces.emplace_back(std::vector<Node*>{node1, node2}, &tri, nullptr);
                     faces.back().midpoint = midpoint;
-                    faceMap[faceKey] = &faces.back();
+                    faceMap[faceKey] = faces.size() - 1;
                 } else {
-                    // Existing face, update right triangle
-                    auto& face = *faceMap[faceKey];
-                    face.rightTriangle = &tri;
-                    face.isBoundary = false;
+                    // Existing face, update the right triangle
+                    std::size_t faceId = faceMap[faceKey];
+                    faces[faceId].rightTriangle = &tri;
+                    faces[faceId].isBoundary = false;
                 }
             }
         }
@@ -171,26 +183,49 @@ public:
 
     // Function to print centroids of all triangles
     void printCentroidsOfTriangles() const {
-        for (const auto& tri : triangles) {
-            std::cout << "Triangle centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
-            std::cout<<"Area = "<<tri.area<<std::endl;
-        }
+    for (const auto& tri : triangles) {
+        std::cout << "Triangle ID: " << tri.id << "\n";
+        std::cout << "Triangle centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
+        std::cout << "Triangle area: " << tri.area << "\n";
     }
+}
+
 
     // Function to print face information
-    void printFaceInfo() const {
-        for (const auto& face : faces) {
-            std::cout << "Face " << (&face - &faces[0]) << ":\n"; // Calculate the index of the face
-            std::cout << "  Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
-            std::cout << "  Left Triangle: " << face.leftTriangle << "\n";
-            std::cout << "  Right Triangle: " << (face.isBoundary ? "N/A" : std::to_string(reinterpret_cast<std::uintptr_t>(face.rightTriangle))) << "\n";
-            std::cout << "  Normal (Left): (" << face.normalLeft.x << ", " << face.normalLeft.y << ", " << face.normalLeft.z << ")\n";
-            if (!face.isBoundary) {
-                std::cout << "  Normal (Right): (" << face.normalRight.x << ", " << face.normalRight.y << ", " << face.normalRight.z << ")\n";
-            }
-            std::cout << "  Midpoint: (" << face.midpoint.x << ", " << face.midpoint.y << ", " << face.midpoint.z << ")\n";
+// Function to print face information
+void printFaceInfo() const {
+    for (std::size_t i = 0; i < faces.size(); ++i) {
+        const auto& face = faces[i];
+        std::cout << "Face " << i << ":\n";
+        
+        // Print face nodes
+        std::cout << "  Nodes: ";
+        for (const auto& node : face.nodes) {
+            std::cout << "(" << node->x << ", " << node->y << ", " << node->z << ") ";
+        }
+        std::cout << "\n";
+        
+        // Print face midpoint
+        std::cout << "  Midpoint: (" << face.midpoint.x << ", " << face.midpoint.y << ", " << face.midpoint.z << ")\n";
+        
+        // Print left triangle information
+        if (face.leftTriangle) {
+            std::cout << "  Left triangle index: " << face.leftTriangle ->id << "\n";
+            std::cout << "  Left normal: (" << face.normalLeft.x << ", " << face.normalLeft.y << ", " << face.normalLeft.z << ")\n";
+        } else {
+            std::cout << "  Left triangle: None\n";
+        }
+        
+        // Print right triangle information
+        if (face.rightTriangle) {
+            std::cout << "  Right triangle index: " << face.rightTriangle ->id << "\n";
+            std::cout << "  Right normal: (" << face.normalRight.x << ", " << face.normalRight.y << ", " << face.normalRight.z << ")\n";
+        } else {
+            std::cout << "  Right triangle: None (Boundary face)\n";
         }
     }
+}
+
 };
 
 // Main function
