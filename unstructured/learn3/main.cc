@@ -228,7 +228,7 @@ public:
 
         // Write cell data
         file << "CELL_DATA " << mesh.triangles.size() << "\n";
-        file << "SCALARS scalar_field float 1\n";
+        file << "SCALARS sol float 1\n";
         file << "LOOKUP_TABLE default\n";
         for (const auto &value : solution) {
             file << value << "\n";
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
         gmsh::model::add("unit_square");
 
         // Define the geometry: a unit square
-        double lc = 1; // Decreased characteristic length for more triangles
+        double lc = 0.01; // Decreased characteristic length for more triangles
         gmsh::model::geo::addPoint(0, 0, 0, lc, 1);
         gmsh::model::geo::addPoint(1, 0, 0, lc, 2);
         gmsh::model::geo::addPoint(1, 1, 0, lc, 3);
@@ -274,8 +274,8 @@ int main(int argc, char **argv) {
 
         Mesh mesh;
         mesh.readFromGmsh();
-        mesh.printCentroidsOfTriangles();
-        mesh.printFaceInfo();
+        //mesh.printCentroidsOfTriangles();
+        //mesh.printFaceInfo();
         std::vector<double> solution;
         initialize(mesh, solution);
         // Save initial conditions to VTK files
