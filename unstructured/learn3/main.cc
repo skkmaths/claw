@@ -181,51 +181,8 @@ public:
 
         return vector;
     }
-
-    // Function to print centroids of all triangles
-    void printCentroidsOfTriangles() const {
-    for (const auto& tri : triangles) {
-        std::cout << "Triangle ID: " << tri.id << "\n";
-        std::cout << "Triangle centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
-        std::cout << "Triangle area: " << tri.area << "\n";
-        std::cout << "Triangle nodes indices"<< tri.nodes[0]->id << " "<<tri.nodes[1]->id <<" "<< tri.nodes[2]->id<<std::endl;
-    }
 }
 
-
-    // Function to print face information
-// Function to print face information
-void printFaceInfo() const {
-    for (std::size_t i = 0; i < faces.size(); ++i) {
-        const auto& face = faces[i];
-        std::cout << "Face " << i << ":\n";
-        // Print face nodes
-        std::cout << "  Nodes: ";
-        for (const auto& node : face.nodes) {
-            std::cout << "(" << node->x << ", " << node->y << ", " << node->z << ") ";
-        }
-        std::cout << "\n";
-        
-        // Print face midpoint
-        std::cout << "  Midpoint: (" << face.midpoint.x << ", " << face.midpoint.y << ", " << face.midpoint.z << ")\n";
-        
-        // Print left triangle information
-        if (face.leftTriangle) {
-            std::cout << "  Left triangle index: " << face.leftTriangle ->id << "\n";
-            std::cout << "  Left normal: (" << face.normalLeft.x << ", " << face.normalLeft.y << ", " << face.normalLeft.z << ")\n";
-        } else {
-            std::cout << "  Left triangle: None\n";
-        }
-        
-        // Print right triangle information
-        if (face.rightTriangle) {
-            std::cout << "  Right triangle index: " << face.rightTriangle ->id << "\n";
-            std::cout << "  Right normal: (" << face.normalRight.x << ", " << face.normalRight.y << ", " << face.normalRight.z << ")\n";
-        } else {
-            std::cout << "  Right triangle: None (Boundary face)\n";
-        }
-    }
-}
 
 };
 
