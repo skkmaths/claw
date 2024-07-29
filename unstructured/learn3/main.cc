@@ -47,6 +47,7 @@ struct Face {
     bool isBoundary;                      // Flag to indicate if the face is a boundary face
     Node normalLeft;                     // Normal vector for left triangle
     Node normalRight;                    // Normal vector for right triangle
+    std::vector<double> midpoint;
 
     Face(const std::vector<std::size_t>& nodes, std::size_t left, std::size_t right)
         : nodeIndices(nodes), leftTriangle(left), rightTriangle(right), isBoundary(right == -1) {}
@@ -185,52 +186,62 @@ public:
     }
 };
 
-// Function to save triangles to a VTK file
-void saveTrianglesToVTK(const Mesh& mesh) {
-    std::ofstream file("triangles.vtk");
-    file << "# vtk DataFile Version 2.0\n";
-    file << "Triangles\n";
-    file << "ASCII\n";
-    file << "DATASET POLYDATA\n";
-    file << "POINTS " << mesh.nodes.size() << " float\n";
-    for (const auto& node : mesh.nodes) {
-        file << node.x << " " << node.y << " " << node.z << "\n";
+ // Function to write initial condition to a VTK file
+    void savesol(const std::string &filename, const Mesh& mesh, std::vector<double> solution) {
+        std::ofstream file(filename);
+        file << "# vtk DataFile Version 3.0\n";
+        file << "Advection Initial Condition\n";
+        file << "ASCII\n";
+        file << "DATASET UNSTRUCTURED_GRID\n";
+
+        // Write points
+        file << "POINTS " << mesh.nodes.size() << " float\n";
+        for (const auto &node : mesh.nodes) {
+            file << node.x << " " << node.y << " " << node.z << "\n";
+        }
+
+        // Write cells
+        file << "CELLS " << mesh.triangles.size() << " " << 4 * mesh.triangles.size() << "\n";
+        for (const auto &tri : mesh.triangles) {
+            file << "3 " << tri.nodeIndices[0] << " " << tri.nodeIndices[1] << " " << tri.nodeIndices[2] << "\n";
+        }
+
+        // Write cell types
+        file << "CELL_TYPES " << mesh.triangles.size() << "\n";
+        for (std::size_t i = 0; i < mesh.triangles.size(); ++i) {
+            file << "5\n"; // VTK_TRIANGLE
+        }
+
+        // Write cell data
+        file << "CELL_DATA " << mesh.triangles.size() << "\n";
+        file << "SCALARS scalar_field float 1\n";
+        file << "LOOKUP_TABLE default\n";
+        for (const auto &value : solution) {
+            file << value << "\n";
+        }
+
+        file.close();
     }
-    file << "TRIANGLES " << mesh.triangles.size() << " " << mesh.triangles.size() * 4 << "\n";
-    for (const auto& tri : mesh.triangles) {
-        file << "3 " << tri.nodeIndices[0] << " " << tri.nodeIndices[1] << " " << tri.nodeIndices[2] << "\n";
-    }
-    file.close();
+
+// Initial condition function
+double initialCondition(double x, double y) {
+    return exp(-30 * ((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)));
 }
 
-// Function to save solution vector to a VTK file
-void saveSolutionVectorToVTK(const Mesh& mesh) {
-    std::ofstream file("solution.vtk");
-    file << "# vtk DataFile Version 2.0\n";
-    file << "Solution Vector\n";
-    file << "ASCII\n";
-    file << "DATASET POLYDATA\n";
-    file << "POINTS " << mesh.nodes.size() << " float\n";
-    for (const auto& node : mesh.nodes) {
-        file << node.x << " " << node.y << " " << node.z << "\n";
+// Function to initialize the solution vector
+void initialize(const Mesh& mesh, std::vector<double>& solution) {
+    solution.resize(mesh.triangles.size());
+    for (size_t i = 0; i < mesh.triangles.size(); ++i) {
+        solution[i] = initialCondition(mesh.triangles[i].centroid.x, mesh.triangles[i].centroid.y);
     }
-    file << "POINT_DATA " << mesh.nodes.size() << "\n";
-    file << "SCALARS solution float 1\n";
-    file << "LOOKUP_TABLE default\n";
-    for (const auto& tri : mesh.triangles) {
-        Node centroid = tri.centroid;
-        file << centroid.x << "\n";
-    }
-    file.close();
 }
-
 int main(int argc, char **argv) {
     try {
         gmsh::initialize();
         gmsh::model::add("unit_square");
 
         // Define the geometry: a unit square
-        double lc = 1; // Decreased characteristic length for more triangles
+        double lc = 0.02; // Decreased characteristic length for more triangles
         gmsh::model::geo::addPoint(0, 0, 0, lc, 1);
         gmsh::model::geo::addPoint(1, 0, 0, lc, 2);
         gmsh::model::geo::addPoint(1, 1, 0, lc, 3);
@@ -249,12 +260,12 @@ int main(int argc, char **argv) {
 
         Mesh mesh;
         mesh.readFromGmsh();
-        mesh.printCentroidsOfTriangles();
-        mesh.printFaceInfo();
-
+        //mesh.printCentroidsOfTriangles();
+       // mesh.printFaceInfo();
+        std::vector<double> solution;
+        initialize(mesh, solution);
         // Save initial conditions to VTK files
-        saveTrianglesToVTK(mesh);
-        saveSolutionVectorToVTK(mesh);
+        savesol("solution.vtk", mesh, solution);
 
         gmsh::finalize();
     } catch (const std::exception &e) {
