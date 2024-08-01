@@ -185,7 +185,7 @@ public:
 
 
 // Function to write initial condition to a VTK file
-    void savesol(const std::string &filename, const Mesh& mesh, std::vector<double> solution) {
+    void savesol(const std::string &filename, const Mesh& mesh, std::vector<double>& solution) {
         std::ofstream file(filename);
         file << "# vtk DataFile Version 3.0\n";
         file << "Advection Initial Condition\n";
@@ -246,7 +246,7 @@ int main() {
     gmsh::model::add("t1");
 
     // Define geometry
-    double lc = 0.1;
+    double lc = 0.01;
     gmsh::model::geo::addPoint(0, 0, 0, lc, 1);
     gmsh::model::geo::addPoint(1, 0, 0, lc, 2);
     gmsh::model::geo::addPoint(1, 1, 0, lc, 3);
