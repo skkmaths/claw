@@ -234,13 +234,12 @@ void initialize(const std::vector<Triangle> triangles, std::vector<double>& solu
     }
     
 }
-// function to update the solution by time step
-void update_solution(std::vector<double> &sol,const double dt, const Mesh &mesh)
+
+void compute_residue(const std::vector<double> &sol, std::vector<double> &res, const Mesh &mesh)
 {
-   for(std::size_t i = 0; i < sol.size(); ++i) {
-        sol[i] += 1;
-    }
+std::fill(res.begin(), res.end(), 0.0);
 }
+
 // Main function
 int main() {
     gmsh::initialize();
@@ -266,12 +265,29 @@ int main() {
 
     Mesh mesh;
     mesh.readFromGmsh();
-    double dt;
-    dt = 0.1;
-    std::vector<double> solution;
-    initialize(mesh.triangles, solution);
-    update_solution(solution, dt, mesh);
+    double dt=0.12;
+    double time= 0.0;
+    double Tf = 1.0;
+    std::vector<double> solution, res;
+    res.resize(mesh.triangles.size(),0.0); // intialize to zero
+    initialize(mesh.triangles, solution); // initialize solution vector and res
+    while (time < Tf)
+    {
+       if (time + dt >Tf){ dt = Tf-time;}
+       compute_residue(solution, res, mesh);
+       // update solution
+       for (auto& tri : mesh.triangles)
+          {
+          unsigned int i = tri.id;
+          solution[i] = solution[i]-dt*res[i];
+          }
+        time +=dt;
+        std::cout<<" time = "<< time<<std::endl;
+
+    }
     savesol("solution.vtk", mesh, solution);
+
+
     gmsh::finalize();
     return 0;
 }
