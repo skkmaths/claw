@@ -5,7 +5,7 @@
 #include <cmath>
 #include <fstream>
 #include <functional>
-
+#include"Vector.h"
 // Node structure to represent a mesh node
 struct Node {
     double x, y, z;  // Coordinates of the node
@@ -181,6 +181,35 @@ public:
 
         return vector;
     }
+
+    void printTriangles() const {
+        for (const auto& tri : triangles) {
+            std::cout << "Triangle ID: " << tri.id << "\n";
+            std::cout << "Centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
+            std::cout << "Vertices:\n";
+            for (const auto& node : tri.nodes) {
+                std::cout << "  (" << node->x << ", " << node->y << ", " << node->z << ")\n";
+            }
+            std::cout << "\n";
+        }
+    }
+    // Function to print details of all faces
+    void printFaces() const {
+        for (std::size_t i = 0; i < faces.size(); ++i) {
+            const auto& face = faces[i];
+            std::cout << "Face ID: " << i << "\n";
+            std::cout << "Nodes: (" << face.nodes[0]->x << ", " << face.nodes[0]->y << ", " << face.nodes[0]->z << ") and ("
+                      << face.nodes[1]->x << ", " << face.nodes[1]->y << ", " << face.nodes[1]->z << ")\n";
+            std::cout << "Left Triangle ID: " << (face.leftTriangle ? face.leftTriangle->id : -1) << "\n";
+            std::cout << "Right Triangle ID: " << (face.rightTriangle ? face.rightTriangle->id : -1) << "\n";
+            std::cout << "Left Normal: (" << face.normalLeft.x << ", " << face.normalLeft.y << ", " << face.normalLeft.z << ")\n";
+            if (!face.isBoundary) {
+                std::cout << "Right Normal: (" << face.normalRight.x << ", " << face.normalRight.y << ", " << face.normalRight.z << ")\n";
+            }
+            std::cout << "Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
+            std::cout << "\n";
+        }
+    }
 };
 
 
@@ -222,7 +251,10 @@ public:
     }
 // Initial condition function
 double initialCondition(double x, double y) {
-    return exp(-30 * ((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)));
+    double r = std::sqrt( pow(x-0.25,2)+pow(y-0.25,2));
+    if ( r < 0.1) return 1-r/0.1;
+    else return 0.0;
+    //return exp(-30 * ((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5)));
 }
 // intialize the solution
 void initialize(const std::vector<Triangle> triangles, std::vector<double>& solution) {
@@ -235,18 +267,60 @@ void initialize(const std::vector<Triangle> triangles, std::vector<double>& solu
     
 }
 
-void compute_residue(const std::vector<double> &sol, std::vector<double> &res, const Mesh &mesh)
+void compute_residue(const std::vector<double> &sol, std::vector<double> &res, const Mesh &mesh, const double& dt)
 {
-std::fill(res.begin(), res.end(), 0.0);
-}
+   //std::fill(res.begin(), res.end(), 0.0);
+   for (auto &value : res) {
+        value = 0.0;
+    }
 
+   for ( auto& face: mesh.faces)
+   { if(!face.isBoundary) // check if the face is not a boundary
+    {  
+       Node n = face.normalRight; // normal vector pointing towards right triangle
+       Triangle* L = face.leftTriangle;
+       Triangle* R = face.rightTriangle;
+       double length_face = std::sqrt( std::pow(face.nodes[0]->x-face.nodes[1]->x,2)+std::pow(face.nodes[0]->y-face.nodes[1]->y,2) );
+       double theta = std::acos(n.x); // angle between rightnormal and positive x axis
+       
+       if (n.y >0.0) theta = std::acos(n.x);
+       else theta = 2.0 * M_PI - std::acos(n.x);
+       double speed_xi = cos(theta) + sin(theta); // speed in the xi direction of the transformed pde
+       //std::cout<<"diff ="<< n.x+n.y - speed_xi<<std::endl;
+       double splus = std::max(speed_xi,0.0);
+       double sminus = std::min(speed_xi,0.0);
+       
+       //double flux = (splus * sol[L->id] + sminus * sol [R->id]) * (  n.x +  n.y );
+       double flux = ((n.x + n.y) *( sol[L->id] + sol[R->id]) - 0.5*(sol[R->id] -sol[L->id])* (std::max(L->area,R->area))/ dt );
+       res[L->id] += length_face * flux/L->area;
+       res[R->id] -= length_face * flux/R->area;
+       //std::cout<<"Lid ="<< L->id<<"Rid = "<< R->id<<" theta = "<<theta*180/M_PI<<std::endl;
+    }
+   }
+}
+double solmax(const std::vector<double>& vec) {
+    auto maxIt = std::max_element(vec.begin(), vec.end());
+    if (maxIt != vec.end()) {
+        return *maxIt;
+    } else {
+        throw std::runtime_error("Vector is empty");
+    }
+}
+double solmin(const std::vector<double>& vec) {
+    auto minIt = std::min_element(vec.begin(), vec.end());
+    if (minIt != vec.end()) {
+        return *minIt;
+    } else {
+        throw std::runtime_error("Vector is empty");
+    }
+}
 // Main function
 int main() {
     gmsh::initialize();
     gmsh::model::add("t1");
 
     // Define geometry
-    double lc = 0.01;
+    double lc = 0.1;
     gmsh::model::geo::addPoint(0, 0, 0, lc, 1);
     gmsh::model::geo::addPoint(1, 0, 0, lc, 2);
     gmsh::model::geo::addPoint(1, 1, 0, lc, 3);
@@ -265,24 +339,46 @@ int main() {
 
     Mesh mesh;
     mesh.readFromGmsh();
-    double dt=0.12;
+    //mesh.printTriangles();
+    //mesh.printFaces();
+    double dt=0.01;
     double time= 0.0;
-    double Tf = 1.0;
+    double Tf = 0.5;
+    unsigned int save_freq = 1;
+    unsigned int iter = 0;
     std::vector<double> solution, res;
+    double h = 1e20;
+    for (auto &tri : mesh.triangles)
+    {
+     h = std::min( h, tri.area);   
+    }
+    dt = 0.9* h;
     res.resize(mesh.triangles.size(),0.0); // intialize to zero
     initialize(mesh.triangles, solution); // initialize solution vector and res
+    std::cout<< "Max = " << std::setw(15) << solmax(solution)
+            << "Min = " << std::setw(15) << solmin(solution) << std::endl;
     while (time < Tf)
     {
        if (time + dt >Tf){ dt = Tf-time;}
-       compute_residue(solution, res, mesh);
+       compute_residue(solution, res, mesh, dt);
        // update solution
        for (auto& tri : mesh.triangles)
           {
           unsigned int i = tri.id;
-          solution[i] = solution[i]-dt*res[i];
+          //std::cout<<"id"<< i <<std::endl;
+          solution[i] = solution[i] - dt*res[i];
           }
         time +=dt;
-        std::cout<<" time = "<< time<<std::endl;
+        iter +=1;
+        if (save_freq > 0){       
+            //if (iter % save_freq == 0){savesol(time, sol);}
+            std::cout << std::left;
+            std::cout << "iter = " << std::setw(8) << iter 
+            << "time = " << std::setw(10) << time 
+            << "Max = " << std::setw(15) << solmax(solution)
+            << "Min = " << std::setw(15) << solmin(solution) << std::endl;
+        }
+        
 
     }
     savesol("solution.vtk", mesh, solution);
