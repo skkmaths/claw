@@ -239,7 +239,7 @@ double length_face(Face& face)
     return std::sqrt( std::pow (p0->x-p1->x,2) + std::pow (p0->y - p1->y,2) );
 }
 
-double minfacelength(Mesh& mesh)
+double minfacelength(const Mesh& mesh)
 {
     double h = 1e20;
     for (auto &face : mesh.faces)
@@ -350,15 +350,15 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             Triangle* R = face.rightTriangle;
             //double lengthface = std::sqrt(std::pow(face.nodes[0]->x - face.nodes[1]->x, 2) + std::pow(face.nodes[0]->y - face.nodes[1]->y, 2));
             double theta = std::acos(n.x); // Angle between right normal and positive x axis
-
             if (n.y > 0.0) theta = std::acos(n.x);
             else theta = 2.0 * M_PI - std::acos(n.x);
             double speed_xi = std::cos(theta) + std::sin(theta); // Speed in the xi direction of the transformed PDE
             double splus = std::max(speed_xi, 0.0);
             double sminus = std::min(speed_xi, 0.0);
             double flux;
-            if (n.x + n.y > 0.0) flux = sol[L->id] * (n.x + n.y);
-            else flux = sol[R->id] * (n.x + n.y);
+            //if (n.x + n.y > 0.0) flux = sol[L->id] * (n.x + n.y);
+            //else flux = sol[R->id] * (n.x + n.y);
+            flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-0.001*(sol[R->id] -sol[L->id])/dt );
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
         }
@@ -390,14 +390,14 @@ int main() {
         
         Mesh mesh;
         mesh.readFromGmsh("mesh.msh");
-        mesh.printFaces();
+        //mesh.printFaces();
         double area = 0.0;
         for(auto &tri : mesh.triangles)
         area += tri.area;
         std::cout<<"area="<<area<<std::endl;
         double dt = 0.001;
-        double time = 0.3;
-        double Tf = 0.0;
+        double time = 0.0;
+        double Tf = 0.5;
         double h = 0.0;
         h = minfacelength(mesh);
         //for (auto &tri : mesh.triangles)h = std::min( h, tri.area);   
