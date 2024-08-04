@@ -374,8 +374,8 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             double flux;
             //if (n.x + n.y > 0.0) flux = sol[L->id] * (n.x + n.y);
             //else flux = sol[R->id] * (n.x + n.y);
-            //double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
-            flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-0.001*(sol[R->id] -sol[L->id])/dt );
+            double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
+            flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-(sol[R->id] -sol[L->id])/lam);
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
         }
