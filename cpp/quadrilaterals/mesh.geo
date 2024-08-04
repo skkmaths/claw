@@ -1,5 +1,5 @@
 // Define the characteristic length of the mesh
-lc = 0.01;
+lc = 0.02;
 
 // Define the points of the geometry
 Point(1) = {0, 0, 0, lc};
