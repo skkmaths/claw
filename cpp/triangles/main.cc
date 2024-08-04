@@ -26,7 +26,7 @@ struct Triangle {
     std::vector<Node*> nodes; // Pointers to the nodes that form the triangle
     double area; // Area of the triangle
     Node centroid; // Centroid of the triangle
-
+    double perimeter;
     // Constructor to compute area and centroid
     Triangle() : area(0.0), centroid{0.0, 0.0, 0.0} {}
 
@@ -112,13 +112,14 @@ public:
             }
 
             createFaces();
+            perimeterTriangle();
         } catch (const std::exception &e) {
             std::cerr << "Exception occurred: " << e.what() << std::endl;
             gmsh::finalize();
             throw;
         }
     }
-
+   
     // Function to create faces from triangles
     void createFaces() {
         for (std::size_t i = 0; i < triangles.size(); ++i) {
@@ -169,6 +170,20 @@ public:
                 Node rightNormal = computeNormalToFace(face.nodes, face.rightTriangle->centroid);
                 face.normalRight = rightNormal;
             }
+        }
+    }
+    void perimeterTriangle()
+    {
+        for( auto &tri : triangles)
+        {
+            Node* p1 = tri.nodes[0];
+            Node* p2 = tri.nodes[1];
+            Node* p3 = tri.nodes[2];
+
+            double p = std::sqrt( std::pow( p1->x -p2->x,2) +std::pow(p1->y-p1->y,2) )+
+                       std::sqrt( std::pow( p1->x -p3->x,2) +std::pow(p1->y-p3->y,2) )+
+                        std::sqrt( std::pow( p2->x -p3->x,2) +std::pow(p2->y-p3->y,3) );
+            tri.perimeter = p;
         }
     }
 
@@ -352,12 +367,13 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             double theta = std::acos(n.x); // Angle between right normal and positive x axis
             if (n.y > 0.0) theta = std::acos(n.x);
             else theta = 2.0 * M_PI - std::acos(n.x);
-            double speed_xi = std::cos(theta) + std::sin(theta); // Speed in the xi direction of the transformed PDE
-            double splus = std::max(speed_xi, 0.0);
-            double sminus = std::min(speed_xi, 0.0);
+            //double speed_xi = std::cos(theta) + std::sin(theta); // Speed in the xi direction of the transformed PDE
+            //double splus = std::max(speed_xi, 0.0);
+            //double sminus = std::min(speed_xi, 0.0);
             double flux;
             //if (n.x + n.y > 0.0) flux = sol[L->id] * (n.x + n.y);
             //else flux = sol[R->id] * (n.x + n.y);
+            //double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
             flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-0.001*(sol[R->id] -sol[L->id])/dt );
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
@@ -383,11 +399,11 @@ double solmin(const std::vector<double>& vec) {
     }
 }
 
+
 // Main function
 int main() {
     try {
         gmsh::initialize();
-        
         Mesh mesh;
         mesh.readFromGmsh("mesh.msh");
         //mesh.printFaces();
@@ -399,10 +415,11 @@ int main() {
         double time = 0.0;
         double Tf = 0.5;
         double h = 0.0;
-        h = minfacelength(mesh);
-        //for (auto &tri : mesh.triangles)h = std::min( h, tri.area);   
+        double alpha = 0.0;
+        //h = minfacelength(mesh);
+        for (auto &tri : mesh.triangles)  alpha= std::max( h, tri.perimeter/tri.area);   
        
-        //dt = 0.5* h;
+        dt = 1/ alpha;
         unsigned int save_freq = 1;
         unsigned int iter = 0;
         std::vector<double> solution, res, ue;
@@ -418,8 +435,7 @@ int main() {
             for (auto& tri : mesh.triangles)
             {
                 unsigned int i = tri.id;
-                //std::cout<<"id"<< i <<std::endl;
-                solution[i] = solution[i] - dt*res[i];
+                solution[i] = solution[i] - dt * res[i];
             }
             time +=dt;
             iter +=1;
