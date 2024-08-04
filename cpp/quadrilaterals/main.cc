@@ -129,21 +129,20 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
     }
 }
 double solmax(const std::vector<double>& vec) {
-    auto maxIt = std::max_element(vec.begin(), vec.end());
-    if (maxIt != vec.end()) {
-        return *maxIt;
-    } else {
-        throw std::runtime_error("Vector is empty");
+    double smax = -1e20;
+    for(auto &value : vec)
+    {
+        smax = std::max(smax, value );
     }
+    return smax;
 }
-
 double solmin(const std::vector<double>& vec) {
-    auto minIt = std::min_element(vec.begin(), vec.end());
-    if (minIt != vec.end()) {
-        return *minIt;
-    } else {
-        throw std::runtime_error("Vector is empty");
+     double smin = 1e20;
+    for(auto &value : vec)
+    {
+        smin = std::min(smin, value );
     }
+    return smin;
 }
 // Main function
 int main() {
@@ -190,13 +189,16 @@ int main() {
                 << "Max = " << std::setw(15) << solmax(solution)
                 << "Min = " << std::setw(15) << solmin(solution) << std::endl;
             }
+            
             if( save_freq >0)
                if ( iter % save_freq == 0) 
                { 
                    savesol(mesh, solution, time);
                }
+            
        
         } 
+        //savesol(mesh, solution, time);
         gmsh::finalize();
     } catch (const std::exception &e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
