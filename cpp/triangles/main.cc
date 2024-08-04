@@ -5,6 +5,10 @@
 #include <cmath>
 #include <fstream>
 #include <functional>
+#include <sstream>
+#include <sys/stat.h>
+
+int fileid = 0;
 
 // Node structure to represent a mesh node
 struct Node {
@@ -50,6 +54,7 @@ struct Face {
     Node normalLeft;          // Normal vector for left triangle
     Node normalRight;         // Normal vector for right triangle
     Node midpoint;
+    double length;            // Length of the face
 
     Face(const std::vector<Node*>& nodes, Triangle* left, Triangle* right)
         : nodes(nodes), leftTriangle(left), rightTriangle(right), isBoundary(right == nullptr) {}
@@ -145,8 +150,16 @@ public:
         }
 
         computeFaceNormals();
+        computeFaceLength();
     }
-
+    void computeFaceLength()
+    {  for (auto& face : faces)
+       {
+          Node* p0 = face.nodes[0];
+          Node* p1 = face.nodes[1];
+          face.length = std::sqrt( std::pow (p0->x-p1->x,2) + std::pow (p0->y - p1->y,2) );
+       }
+    }
     // Function to compute normal vectors for faces
     void computeFaceNormals() {
         for (auto& face : faces) {
@@ -204,6 +217,7 @@ public:
         for (std::size_t i = 0; i < faces.size(); ++i) {
             const auto& face = faces[i];
             std::cout << "Face ID: " << i << "\n";
+            std::cout << "Face length: " << face.length << "\n";
             std::cout << "Nodes: (" << face.nodes[0]->x << ", " << face.nodes[0]->y << ", " << face.nodes[0]->z << ") and ("
                       << face.nodes[1]->x << ", " << face.nodes[1]->y << ", " << face.nodes[1]->z << ")\n";
             std::cout << "Left Triangle ID: " << (face.leftTriangle ? face.leftTriangle->id : -1) << "\n";
@@ -216,13 +230,55 @@ public:
             std::cout << "\n";
         }
     }
+    
 };
+double length_face(Face& face)
+{
+    Node* p0 = face.nodes[0];
+    Node* p1 = face.nodes[1];
+    return std::sqrt( std::pow (p0->x-p1->x,2) + std::pow (p0->y - p1->y,2) );
+}
 
+double minfacelength(Mesh& mesh)
+{
+    double h = 1e20;
+    for (auto &face : mesh.faces)
+    {
+        h = std::min( h, face.length);
+    }
+    return h;
+}
+// For file name
+void createDirectory(const std::string& dirname) 
+{
+    struct stat info;
+    if(stat(dirname.c_str(), &info) != 0 || !(info.st_mode & S_IFDIR)) {
+        if(mkdir(dirname.c_str(), 0777) != 0) {
+            std::cerr << "Error creating directory " << dirname << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        std::cout << "Directory " << dirname << " is created" << std::endl;
+    }
+}
+std::string getFilename(const std::string& basename, int id) {
+    std::ostringstream oss;
+    oss << basename << "_" << std::setfill('0') << std::setw(4) << id << ".vtk";
+    return oss.str();
+}
 // Function to write initial condition to a VTK file
-void savesol(const std::string &filename, const Mesh& mesh, std::vector<double>& solution) {
+void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
+    std::string dirname = "sol";
+    createDirectory(dirname);
+    if(fileid == 0) {
+        std::cout << "The directory \"sol\" is going to be formatted!" << std::endl;
+        std::string pattern = "./sol/*";
+        // Remove existing files
+        system(("rm -f " + pattern).c_str());
+    }
+    std::string filename = getFilename("sol/sol", fileid);
     std::ofstream file(filename);
     file << "# vtk DataFile Version 3.0\n";
-    file << "Advection Initial Condition\n";
+    file << "Advection Solution at time " << t << "\n";
     file << "ASCII\n";
     file << "DATASET UNSTRUCTURED_GRID\n";
 
@@ -244,6 +300,11 @@ void savesol(const std::string &filename, const Mesh& mesh, std::vector<double>&
         file << "5\n"; // VTK_TRIANGLE
     }
 
+    // Write field data for time
+    file << "FIELD FieldData 1\n";
+    file << "TIME 1 1 float\n";
+    file << t << "\n";
+
     // Write cell data
     file << "CELL_DATA " << mesh.triangles.size() << "\n";
     file << "SCALARS sol float 1\n";
@@ -253,6 +314,7 @@ void savesol(const std::string &filename, const Mesh& mesh, std::vector<double>&
     }
 
     file.close();
+    fileid++;
 }
 
 // Initial condition function
@@ -271,6 +333,14 @@ void initialize(const std::vector<Triangle> triangles, std::vector<double>& solu
     }
 }
 
+// exact the solution
+void exact(const std::vector<Triangle> triangles, std::vector<double>& ue, const double& t) {
+    ue.resize(triangles.size());
+    for (const auto &tri : triangles) {
+        int i = tri.id;
+        ue[i] = initialCondition(tri.centroid.x-t, tri.centroid.y-t);
+    }
+}
 void compute_residue(const std::vector<double> &sol, std::vector<double> &res, const Mesh &mesh, const double& dt) {
     std::fill(res.begin(), res.end(), 0.0);
     for (const auto& face : mesh.faces) {
@@ -278,7 +348,7 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             Node n = face.normalLeft; // Normal vector pointing towards right triangle
             Triangle* L = face.leftTriangle;
             Triangle* R = face.rightTriangle;
-            double length_face = std::sqrt(std::pow(face.nodes[0]->x - face.nodes[1]->x, 2) + std::pow(face.nodes[0]->y - face.nodes[1]->y, 2));
+            //double lengthface = std::sqrt(std::pow(face.nodes[0]->x - face.nodes[1]->x, 2) + std::pow(face.nodes[0]->y - face.nodes[1]->y, 2));
             double theta = std::acos(n.x); // Angle between right normal and positive x axis
 
             if (n.y > 0.0) theta = std::acos(n.x);
@@ -289,8 +359,8 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             double flux;
             if (n.x + n.y > 0.0) flux = sol[L->id] * (n.x + n.y);
             else flux = sol[R->id] * (n.x + n.y);
-            res[L->id] += length_face * flux / L->area;
-            res[R->id] -= length_face * flux / R->area;
+            res[L->id] += face.length * flux / L->area;
+            res[R->id] -= face.length * flux / R->area;
         }
     }
 }
@@ -321,45 +391,53 @@ int main() {
         Mesh mesh;
         mesh.readFromGmsh("mesh.msh");
         mesh.printFaces();
-        
-        double dt = 0.01;
-        double time = 0.0;
-        double Tf = 0.4;
-        double h = 1e20;
-        for (auto &tri : mesh.triangles)h = std::min( h, tri.area);   
-    
-        dt = 0.5* h;
+        double area = 0.0;
+        for(auto &tri : mesh.triangles)
+        area += tri.area;
+        std::cout<<"area="<<area<<std::endl;
+        double dt = 0.001;
+        double time = 0.3;
+        double Tf = 0.0;
+        double h = 0.0;
+        h = minfacelength(mesh);
+        //for (auto &tri : mesh.triangles)h = std::min( h, tri.area);   
+       
+        //dt = 0.5* h;
         unsigned int save_freq = 1;
         unsigned int iter = 0;
-        std::vector<double> solution, res;
+        std::vector<double> solution, res, ue;
         res.resize(mesh.triangles.size(),0.0);
         initialize(mesh.triangles, solution); // initialize solution vector
+        //exact(mesh.triangles, ue, time);
+        savesol(mesh, solution, time);
         while (time < Tf)
         {
-        if (time + dt >Tf){ dt = Tf-time;}
-        compute_residue(solution, res, mesh, dt);
-        // update solution
-        for (auto& tri : mesh.triangles)
-          {
-          unsigned int i = tri.id;
-          //std::cout<<"id"<< i <<std::endl;
-          solution[i] = solution[i] - dt*res[i];
-          }
-        time +=dt;
-        iter +=1;
-        if (save_freq > 0){       
-            //if (iter % save_freq == 0){savesol(time, sol);}
-            std::cout << std::left;
-            std::cout << "iter = " << std::setw(8) << iter 
-            << "time = " << std::setw(10) << time 
-            << "Max = " << std::setw(15) << solmax(solution)
-            << "Min = " << std::setw(15) << solmin(solution) << std::endl;
-        }
-        
+            if (time + dt >Tf){ dt = Tf-time;}
+            compute_residue(solution, res, mesh, dt);
+            // update solution
+            for (auto& tri : mesh.triangles)
+            {
+                unsigned int i = tri.id;
+                //std::cout<<"id"<< i <<std::endl;
+                solution[i] = solution[i] - dt*res[i];
+            }
+            time +=dt;
+            iter +=1;
+            if (save_freq > 0){       
+               //if (iter % save_freq == 0){savesol(time, sol);}
+                std::cout << std::left;
+                std::cout << "iter = " << std::setw(8) << iter 
+                << "time = " << std::setw(10) << time 
+                << "Max = " << std::setw(15) << solmax(solution)
+                << "Min = " << std::setw(15) << solmin(solution) << std::endl;
+            }
+            if( save_freq >0)
+               if ( iter % save_freq == 0) 
+               { 
+                   savesol(mesh, solution, time);
+               }
 
-    }
-        savesol("solution.vtk", mesh, solution);
-        
+        }
         gmsh::finalize();
     } catch (const std::exception &e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
