@@ -24,8 +24,8 @@ struct Cell {
         const auto& p3 = *nodes[3];
 
         // Calculate area using the cross product of vectors
-        area = std::abs( p0.x*( p1.y-p2.y) + p1.x*(p2.y - p0.y) + p2.x*(p0.y-p1.y) ) / 2.0 +
-               std::abs( p0.x*( p1.y-p2.y) + p1.x*(p2.y - p0.y) + p2.x*(p0.y-p1.y) ) / 2.0 ;
+        area = std::abs( (p0.x*p1.y  + p1.x * p2.y + p2.x * p3.y + p3.x * p0.y ) -  
+               (p0.y * p1.x + p1.y * p2.x + p2.y * p3.x + p3.y * p0.x)) / 2.0;
 
 
         // Calculate centroid
@@ -214,6 +214,7 @@ public:
         for (const auto& cell : cells) {
             std::cout << "Cell ID: " << cell.id << "\n";
             std::cout << "Cell perimeter = " << cell.perimeter << "\n";
+            std::cout << "Cell area = " << cell.area << "\n";
             std::cout << "Centroid: (" << cell.centroid.x << ", " << cell.centroid.y << ", " << cell.centroid.z << ")\n";
             std::cout << "Vertices:\n";
             for (const auto& node : cell.nodes) {
