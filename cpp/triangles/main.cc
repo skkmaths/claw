@@ -180,9 +180,9 @@ public:
             Node* p2 = tri.nodes[1];
             Node* p3 = tri.nodes[2];
 
-            double p = std::sqrt( std::pow( p1->x -p2->x,2) +std::pow(p1->y-p1->y,2) )+
+            double p = std::sqrt( std::pow( p1->x -p2->x,2) +std::pow(p1->y-p2->y,2) )+
                        std::sqrt( std::pow( p1->x -p3->x,2) +std::pow(p1->y-p3->y,2) )+
-                        std::sqrt( std::pow( p2->x -p3->x,2) +std::pow(p2->y-p3->y,3) );
+                        std::sqrt( std::pow( p2->x -p3->x,2) +std::pow(p2->y-p3->y,2) );
             tri.perimeter = p;
         }
     }
@@ -218,6 +218,7 @@ public:
     void printTriangles() const {
         for (const auto& tri : triangles) {
             std::cout << "Triangle ID: " << tri.id << "\n";
+            std::cout << "Triangle perimeter = " << tri.perimeter << "\n";
             std::cout << "Centroid: (" << tri.centroid.x << ", " << tri.centroid.y << ", " << tri.centroid.z << ")\n";
             std::cout << "Vertices:\n";
             for (const auto& node : tri.nodes) {
@@ -407,6 +408,7 @@ int main() {
         Mesh mesh;
         mesh.readFromGmsh("mesh.msh");
         //mesh.printFaces();
+        //mesh.printTriangles();
         double area = 0.0;
         for(auto &tri : mesh.triangles)
         area += tri.area;
