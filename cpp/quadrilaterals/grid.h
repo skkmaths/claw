@@ -1,3 +1,6 @@
+#include <cassert>
+
+
 // Node structure to represent a mesh node
 struct Node {
     double x, y, z;  // Coordinates of the node
@@ -79,6 +82,8 @@ public:
             nodes.resize(nodeTags.size());
             for (std::size_t i = 0; i < nodeTags.size(); ++i) {
                 nodes[i].id = static_cast<int>(i);
+                //Ensure that the assigned ID is within bounds before adding to the vector
+                assert(nodes[i].id < nodes.size() && "Nodes ID is out of bounds.");
                 nodes[i].x = coord[3 * i];
                 nodes[i].y = coord[3 * i + 1];
                 nodes[i].z = coord[3 * i + 2];
@@ -93,6 +98,8 @@ public:
                     for (std::size_t j = 0; j < elementTags[i].size(); ++j) {
                         Cell cell;
                         cell.id = static_cast<int>(cells.size()); // Assign ID based on current size of triangles
+                        //Ensure that the assigned ID is within bounds before adding to the vector
+                        assert(cell.id < cells.size() && "Cell ID is out of bounds.");
                         cell.nodes = {&nodes[elementNodeTags[i][4 * j] - 1],
                         &nodes[elementNodeTags[i][4 * j + 1] - 1],
                         &nodes[elementNodeTags[i][4 * j + 2] - 1],
