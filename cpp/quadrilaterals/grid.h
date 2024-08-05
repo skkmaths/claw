@@ -70,6 +70,7 @@ public:
     std::vector<Face> faces;              // List of faces in the mesh
     std::unordered_map<std::pair<std::size_t, std::size_t>, std::size_t, pair_hash> faceMap; // Mapping from node indices to face indices
     std::vector<Node*> nodeMap; // Mapping from node ID to corresponding Node pointer
+    std::vector<Cell*> cellMap; // Mapping from cell ID to corresponding Cell
     // Function to read mesh data from GMSH
     void readFromGmsh(const std::string &filename) {
         try {
@@ -97,9 +98,7 @@ public:
                 if (elementTypes[i] == 3) { // Type 2 corresponds to 2D quadrilateral elements
                     for (std::size_t j = 0; j < elementTags[i].size(); ++j) {
                         Cell cell;
-                        cell.id = static_cast<int>(cells.size()); // Assign ID based on current size of triangles
                         //Ensure that the assigned ID is within bounds before adding to the vector
-                        assert(cell.id < cells.size() && "Cell ID is out of bounds.");
                         cell.nodes = {&nodes[elementNodeTags[i][4 * j] - 1],
                         &nodes[elementNodeTags[i][4 * j + 1] - 1],
                         &nodes[elementNodeTags[i][4 * j + 2] - 1],
@@ -113,10 +112,21 @@ public:
             createFaces();
             perimeterCells();
             generateNodeMap();
+            //generateCellMap();
+            generateCellid();
         } catch (const std::exception &e) {
             std::cerr << "Exception occurred: " << e.what() << std::endl;
             gmsh::finalize();
             throw;
+        }
+    }
+    void generateCellid(){
+        static int i=0;
+        for(auto &cell : cells)
+        {
+            cell.id = static_cast<int>(i);
+            assert(cell.id < cells.size() && "Cell ID is out of bounds.");
+            i++;
         }
     }
     // Function to generate the node ID to Node pointer map
@@ -124,6 +134,13 @@ public:
         nodeMap.resize(nodes.size());
         for (auto& node : nodes) {
             nodeMap[node.id] = &node;
+        }
+    }
+    // Function to generate the cell ID to Cell pointer map
+    void generateCellMap() {
+        cellMap.resize(cells.size());
+        for (auto& cell : cells) {
+            cellMap[cell.id] = &cell;
         }
     }
     // Function to create faces from triangles
