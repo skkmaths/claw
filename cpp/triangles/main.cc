@@ -8,91 +8,7 @@
 #include <sstream>
 #include <sys/stat.h>
 #include"grid.h"
-
-int fileid = 0;
-double length_face(Face& face)
-{
-    Node* p0 = face.nodes[0];
-    Node* p1 = face.nodes[1];
-    return std::sqrt( std::pow (p0->x-p1->x,2) + std::pow (p0->y - p1->y,2) );
-}
-double minfacelength(const Mesh& mesh)
-{
-    double h = 1e20;
-    for (auto &face : mesh.faces)
-    {
-        h = std::min( h, face.length);
-    }
-    return h;
-}
-// For file name
-void createDirectory(const std::string& dirname) 
-{
-    struct stat info;
-    if(stat(dirname.c_str(), &info) != 0 || !(info.st_mode & S_IFDIR)) {
-        if(mkdir(dirname.c_str(), 0777) != 0) {
-            std::cerr << "Error creating directory " << dirname << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        std::cout << "Directory " << dirname << " is created" << std::endl;
-    }
-}
-std::string getFilename(const std::string& basename, int id) {
-    std::ostringstream oss;
-    oss << basename << "_" << std::setfill('0') << std::setw(4) << id << ".vtk";
-    return oss.str();
-}
-// Function to write initial condition to a VTK file
-void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
-    std::string dirname = "sol";
-    createDirectory(dirname);
-    if(fileid == 0) {
-        std::cout << "The directory \"sol\" is going to be formatted!" << std::endl;
-        std::string pattern = "./sol/*";
-        // Remove existing files
-        system(("rm -f " + pattern).c_str());
-    }
-    std::string filename = getFilename("sol/sol", fileid);
-    std::ofstream file(filename);
-    file << "# vtk DataFile Version 3.0\n";
-    file << "Advection Solution at time " << t << "\n";
-    file << "ASCII\n";
-    file << "DATASET UNSTRUCTURED_GRID\n";
-
-    // Write points
-    file << "POINTS " << mesh.nodes.size() << " float\n";
-    for (const auto &node : mesh.nodes) {
-        file << node.x << " " << node.y << " " << node.z << "\n";
-    }
-
-    // Write cells
-    file << "CELLS " << mesh.triangles.size() << " " << 4 * mesh.triangles.size() << "\n";
-    for (const auto &tri : mesh.triangles) {
-        file << "3 " << tri.nodes[0]->id << " " << tri.nodes[1]->id << " " << tri.nodes[2]->id << "\n";
-    }
-
-    // Write cell types
-    file << "CELL_TYPES " << mesh.triangles.size() << "\n";
-    for (std::size_t i = 0; i < mesh.triangles.size(); ++i) {
-        file << "5\n"; // VTK_TRIANGLE
-    }
-
-    // Write field data for time
-    file << "FIELD FieldData 1\n";
-    file << "TIME 1 1 float\n";
-    file << t << "\n";
-
-    // Write cell data
-    file << "CELL_DATA " << mesh.triangles.size() << "\n";
-    file << "SCALARS sol float 1\n";
-    file << "LOOKUP_TABLE default\n";
-    for (const auto &value : solution) {
-        file << value << "\n";
-    }
-
-    file.close();
-    fileid++;
-}
+#include"vis.h"
 
 // Initial condition function
 double initialCondition(double x, double y) {
@@ -126,9 +42,9 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             Triangle* L = face.leftTriangle;
             Triangle* R = face.rightTriangle;
             //double lengthface = std::sqrt(std::pow(face.nodes[0]->x - face.nodes[1]->x, 2) + std::pow(face.nodes[0]->y - face.nodes[1]->y, 2));
-            double theta = std::acos(n.x); // Angle between right normal and positive x axis
-            if (n.y > 0.0) theta = std::acos(n.x);
-            else theta = 2.0 * M_PI - std::acos(n.x);
+            //double theta = std::acos(n.x); // Angle between right normal and positive x axis
+            //if (n.y > 0.0) theta = std::acos(n.x);
+            //else theta = 2.0 * M_PI - std::acos(n.x);
             //double speed_xi = std::cos(theta) + std::sin(theta); // Speed in the xi direction of the transformed PDE
             //double splus = std::max(speed_xi, 0.0);
             //double sminus = std::min(speed_xi, 0.0);
@@ -160,8 +76,6 @@ double solmin(const std::vector<double>& vec) {
         throw std::runtime_error("Vector is empty");
     }
 }
-
-
 // Main function
 int main() {
     try {
@@ -175,14 +89,13 @@ int main() {
         area += tri.area;
         std::cout<<"area="<<area<<std::endl;
         double dt = 0.001;
+        double cfl = 0.9;
         double time = 0.0;
         double Tf = 0.5;
-        double h = 0.0;
-        double alpha = 0.0;
+        double speed = 0.0;
         //h = minfacelength(mesh);
-        for (auto &tri : mesh.triangles)  alpha= std::max( h, tri.perimeter/tri.area);   
-       
-        dt = 0.8/ alpha;
+        for (auto &tri : mesh.triangles)  speed= std::max(speed, tri.perimeter/tri.area);   
+        dt = cfl/ speed;
         unsigned int save_freq = 1;
         unsigned int iter = 0;
         std::vector<double> solution, res, ue;
@@ -223,6 +136,5 @@ int main() {
         gmsh::finalize();
         return 1;
     }
-
     return 0;
 }
