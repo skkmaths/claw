@@ -17,7 +17,6 @@ double initialCondition(double x, double y) {
     if (r < 0.1) return 1.0;
     else return 0.0;
 }
-
 // Initialize the solution
 void initialize(const std::vector<Cell> cells, std::vector<double>& solution) {
     solution.resize(cells.size());
@@ -26,7 +25,6 @@ void initialize(const std::vector<Cell> cells, std::vector<double>& solution) {
         solution[i] = initialCondition(cell.centroid.x, cell.centroid.y);
     }
 }
-
 // exact the solution
 void exact(const std::vector<Cell> cells, std::vector<double>& ue, const double& t) {
     ue.resize(cells.size());
@@ -35,6 +33,7 @@ void exact(const std::vector<Cell> cells, std::vector<double>& ue, const double&
         ue[i] = initialCondition(cell.centroid.x-t, cell.centroid.y-t);
     }
 }
+// Compute residue
 void compute_residue(const std::vector<double> &sol, std::vector<double> &res, const Mesh &mesh, const double& dt) {
     std::fill(res.begin(), res.end(), 0.0);
     for (const auto& face : mesh.faces) {
@@ -59,6 +58,7 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
         }
     }
 }
+// To find max of solution vector
 double solmax(const std::vector<double>& vec) {
     double smax = -1e20;
     for(auto &value : vec)
@@ -67,6 +67,7 @@ double solmax(const std::vector<double>& vec) {
     }
     return smax;
 }
+// To find min of solution vector
 double solmin(const std::vector<double>& vec) {
      double smin = 1e20;
     for(auto &value : vec)
@@ -81,8 +82,6 @@ int main() {
         gmsh::initialize();
         Mesh mesh;
         mesh.readFromGmsh("mesh.msh");
-        //mesh.printFaces();
-        //mesh.printCells();
         double dt ;
         double time = 0.0;
         double Tf = 0.5;
@@ -127,7 +126,6 @@ int main() {
                    savesol(mesh, solution, time);
                }
             
-       
         } 
         //savesol(mesh, solution, time);
         gmsh::finalize();
@@ -136,6 +134,5 @@ int main() {
         gmsh::finalize();
         return 1;
     }
-
     return 0;
 }
