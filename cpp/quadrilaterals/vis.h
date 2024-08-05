@@ -33,7 +33,6 @@ void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
     file << "Advection Solution at time " << t << "\n";
     file << "ASCII\n";
     file << "DATASET UNSTRUCTURED_GRID\n";
-
     // Write points
     // Warning! make sure that id s are index from 0 to mesh.nodes.size()
     file << "POINTS " << mesh.nodes.size() << " float\n";
@@ -41,32 +40,27 @@ void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
     {
         file <<mesh.nodeMap[id]->x<<" " <<mesh.nodeMap[id]->y <<" "<< mesh.nodeMap[id]->z << "\n";
     }
-    
     // Write cells
     file << "CELLS " << mesh.cells.size() << " " << 5 * mesh.cells.size() << "\n";
     for (const auto &cell : mesh.cells) {
         file << "4 " << cell.nodes[0]->id << " " << cell.nodes[1]->id << " " << cell.nodes[2]->id << " " << cell.nodes[3]->id << "\n";
     }
-
     // Write cell types
     file << "CELL_TYPES " << mesh.cells.size() << "\n";
     for (std::size_t i = 0; i < mesh.cells.size(); ++i) {
         file << "9\n"; // VTK_QUAD
     }
-
     // Write field data for time
     file << "FIELD FieldData 1\n";
     file << "TIME 1 1 float\n";
-    file << t << "\n";
-
+    file << t << "\n"; 
     // Write cell data
     file << "CELL_DATA " << mesh.cells.size() << "\n";
     file << "SCALARS sol float 1\n";
     file << "LOOKUP_TABLE default\n";
     for (const auto &cell : mesh.cells) {
-        file << std::fixed << std::setprecision(8) << solution[cell.id] << "\n";
+        file << std::fixed << std::setprecision(12) << solution[cell.id] << "\n";
     }
-
     file.close();
     fileid++;
 }
