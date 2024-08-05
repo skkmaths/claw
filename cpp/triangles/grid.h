@@ -80,6 +80,7 @@ public:
             nodes.resize(nodeTags.size());
             for (std::size_t i = 0; i < nodeTags.size(); ++i) {
                 nodes[i].id = static_cast<int>(i);
+                assert(nodes[i].id < nodes.size() && "Node ID is out of bounds.");
                 nodes[i].x = coord[3 * i];
                 nodes[i].y = coord[3 * i + 1];
                 nodes[i].z = coord[3 * i + 2];
