@@ -55,14 +55,14 @@ void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
     }
 
     // Write cells
-    file << "CELLS " << mesh.triangles.size() << " " << 4 * mesh.triangles.size() << "\n";
-    for (const auto &tri : mesh.triangles) {
-        file << "3 " << tri.nodes[0]->id << " " << tri.nodes[1]->id << " " << tri.nodes[2]->id << "\n";
+    file << "CELLS " << mesh.cells.size() << " " << 4 * mesh.cells.size() << "\n";
+    for (const auto &cell : mesh.cells) {
+        file << "3 " << cell.nodes[0]->id << " " << cell.nodes[1]->id << " " << cell.nodes[2]->id << "\n";
     }
 
     // Write cell types
-    file << "CELL_TYPES " << mesh.triangles.size() << "\n";
-    for (std::size_t i = 0; i < mesh.triangles.size(); ++i) {
+    file << "CELL_TYPES " << mesh.cells.size() << "\n";
+    for (std::size_t i = 0; i < mesh.cells.size(); ++i) {
         file << "5\n"; // VTK_TRIANGLE
     }
 
@@ -72,11 +72,11 @@ void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
     file << t << "\n";
 
     // Write cell data
-    file << "CELL_DATA " << mesh.triangles.size() << "\n";
+    file << "CELL_DATA " << mesh.cells.size() << "\n";
     file << "SCALARS sol float 1\n";
     file << "LOOKUP_TABLE default\n";
-    for (const auto &tri : mesh.triangles) {
-        file << std::fixed << std::setprecision(12) << solution[tri.id] << "\n";
+    for (const auto &cell : mesh.cells) {
+        file << std::fixed << std::setprecision(12) << solution[cell.id] << "\n";
     }
 
     file.close();

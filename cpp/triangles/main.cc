@@ -16,31 +16,28 @@ double initialCondition(double x, double y) {
     if (r < 0.1) return 1.0;
     else return 0.0;
 }
-
 // Initialize the solution
-void initialize(const std::vector<Triangle> triangles, std::vector<double>& solution) {
-    solution.resize(triangles.size());
-    for (const auto &tri : triangles) {
-        int i = tri.id;
-        solution[i] = initialCondition(tri.centroid.x, tri.centroid.y);
+void initialize(const std::vector<Cell> cells, std::vector<double>& solution) {
+    solution.resize(cells.size());
+    for (const auto &cell : cells) {
+        solution[cell.id] = initialCondition(cell.centroid.x, cell.centroid.y);
     }
 }
-
 // exact the solution
-void exact(const std::vector<Triangle> triangles, std::vector<double>& ue, const double& t) {
-    ue.resize(triangles.size());
-    for (const auto &tri : triangles) {
-        int i = tri.id;
-        ue[i] = initialCondition(tri.centroid.x-t, tri.centroid.y-t);
+void exact(const std::vector<Cell> cells, std::vector<double>& ue, const double& t) {
+    ue.resize(cells.size());
+    for (const auto &cell : cells) {
+        ue[cell.id] = initialCondition(cell.centroid.x-t, cell.centroid.y-t);
     }
 }
+// To compute the residue RHS
 void compute_residue(const std::vector<double> &sol, std::vector<double> &res, const Mesh &mesh, const double& dt) {
     std::fill(res.begin(), res.end(), 0.0);
     for (const auto& face : mesh.faces) {
         if (!face.isBoundary) { // Check if the face is not a boundary
             Node n = face.normalLeft; // Normal vector pointing towards right triangle
-            Triangle* L = face.leftTriangle;
-            Triangle* R = face.rightTriangle;
+            Cell* L = face.leftCell;
+            Cell* R = face.rightCell;
             //double lengthface = std::sqrt(std::pow(face.nodes[0]->x - face.nodes[1]->x, 2) + std::pow(face.nodes[0]->y - face.nodes[1]->y, 2));
             //double theta = std::acos(n.x); // Angle between right normal and positive x axis
             //if (n.y > 0.0) theta = std::acos(n.x);
@@ -58,7 +55,7 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
         }
     }
 }
-
+// Compute max of solution vector
 double solmax(const std::vector<double>& vec) {
     auto maxIt = std::max_element(vec.begin(), vec.end());
     if (maxIt != vec.end()) {
@@ -67,7 +64,7 @@ double solmax(const std::vector<double>& vec) {
         throw std::runtime_error("Vector is empty");
     }
 }
-
+// Compute min of solution vector
 double solmin(const std::vector<double>& vec) {
     auto minIt = std::min_element(vec.begin(), vec.end());
     if (minIt != vec.end()) {
@@ -82,11 +79,9 @@ int main() {
         gmsh::initialize();
         Mesh mesh;
         mesh.readFromGmsh("mesh.msh");
-        //mesh.printFaces();
-        //mesh.printTriangles();
         double area = 0.0;
-        for(auto &tri : mesh.triangles)
-        area += tri.area;
+        for(auto &cell : mesh.cells)
+        area += cell.area;
         std::cout<<"area="<<area<<std::endl;
         double dt = 0.001;
         double cfl = 0.9;
@@ -94,24 +89,23 @@ int main() {
         double Tf = 0.5;
         double speed = 0.0;
         //h = minfacelength(mesh);
-        for (auto &tri : mesh.triangles)  speed= std::max(speed, tri.perimeter/tri.area);   
+        for (auto &cell : mesh.cells)  speed= std::max(speed, cell.perimeter/cell.area);   
         dt = cfl/ speed;
         unsigned int save_freq = 1;
         unsigned int iter = 0;
         std::vector<double> solution, res, ue;
-        res.resize(mesh.triangles.size(),0.0);
-        initialize(mesh.triangles, solution); // initialize solution vector
-        //exact(mesh.triangles, ue, time);
+        res.resize(mesh.cells.size(),0.0);
+        initialize(mesh.cells, solution); // initialize solution vector
+        //exact(mesh.cells, ue, time);
         savesol(mesh, solution, time);
         while (time < Tf)
         {
             if (time + dt >Tf){ dt = Tf-time;}
             compute_residue(solution, res, mesh, dt);
             // update solution
-            for (auto& tri : mesh.triangles)
+            for (auto& cell : mesh.cells)
             {
-                unsigned int i = tri.id;
-                solution[i] = solution[i] - dt * res[i];
+                solution[cell.id] = solution[cell.id] - dt * res[cell.id];
             }
             time +=dt;
             iter +=1;
@@ -128,7 +122,6 @@ int main() {
                { 
                    savesol(mesh, solution, time);
                }
-
         }
         gmsh::finalize();
     } catch (const std::exception &e) {
