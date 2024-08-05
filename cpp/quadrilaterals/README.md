@@ -10,3 +10,4 @@ If a face is a part of the boundary, then right cell is always marked as -1 as t
 
 1. Implementation of boundary condition: Periodic, Dirichlet, Inflow, Outflow etc.
 2. Fixing CFL and use of various numfluxes.
+3. Need to assign the ID s for Cells and update the vtk file.
