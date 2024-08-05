@@ -63,8 +63,8 @@ void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
     file << "CELL_DATA " << mesh.cells.size() << "\n";
     file << "SCALARS sol float 1\n";
     file << "LOOKUP_TABLE default\n";
-    for (const auto &value : solution) {
-        file << value << "\n";
+    for (const auto &cell : mesh.cells) {
+        file << std::fixed << std::setprecision(8) << solution[cell.id] << "\n";
     }
 
     file.close();
