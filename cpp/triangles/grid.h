@@ -67,7 +67,7 @@ public:
     std::vector<Cell> cells;      // List of cells in the mesh
     std::vector<Face> faces;              // List of faces in the mesh
     std::unordered_map<std::pair<std::size_t, std::size_t>, std::size_t, pair_hash> faceMap; // Mapping from node indices to face indices
-
+    std::vector<Node*> nodeMap; // Mapping from node ID to corresponding Node pointer
     // Function to read mesh data from GMSH
     void readFromGmsh(const std::string &filename) {
         try {
@@ -103,13 +103,21 @@ public:
             createFaces();
             perimeterCell();
             generateCellid();
+            generateNodeMap();
         } catch (const std::exception &e) {
             std::cerr << "Exception occurred: " << e.what() << std::endl;
             gmsh::finalize();
             throw;
         }
     }
-   void generateCellid(){
+    // generate the nodeMap vector
+    void generateNodeMap() {
+        nodeMap.resize(nodes.size());
+        for (auto& node : nodes) {
+            nodeMap[node.id] = &node;
+        }
+    }
+    void generateCellid(){
         static int i=0;
         for(auto &cell : cells)
         {

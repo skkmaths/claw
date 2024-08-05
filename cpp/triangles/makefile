@@ -1,8 +1,8 @@
 # Compiler and Linker
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall
-INCLUDES = -I/opt/homebrew/include $(shell pkg-config --cflags vtk)
-LDFLAGS = -L/opt/homebrew/lib $(shell pkg-config --libs vtk) -lgmsh
+INCLUDES = -I/opt/homebrew/include 
+LDFLAGS = -L/opt/homebrew/lib  -lgmsh
 # Target executable
 TARGET = main
 
