@@ -35,11 +35,13 @@ void savesol(const Mesh& mesh, std::vector<double>& solution, const double& t) {
     file << "DATASET UNSTRUCTURED_GRID\n";
 
     // Write points
+    // Warning! make sure that id s are index from 0 to mesh.nodes.size()
     file << "POINTS " << mesh.nodes.size() << " float\n";
-    for (const auto &node : mesh.nodes) {
-        file << node.x << " " << node.y << " " << node.z << "\n";
+    for ( unsigned int id = 0; id < mesh.nodes.size(); id++)
+    {
+        file <<mesh.nodeMap[id]->x<<" " <<mesh.nodeMap[id]->y <<" "<< mesh.nodeMap[id]->z << "\n";
     }
-
+    
     // Write cells
     file << "CELLS " << mesh.cells.size() << " " << 5 * mesh.cells.size() << "\n";
     for (const auto &cell : mesh.cells) {

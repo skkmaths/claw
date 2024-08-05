@@ -27,7 +27,6 @@ struct Cell {
         area = std::abs( (p0.x*p1.y  + p1.x * p2.y + p2.x * p3.y + p3.x * p0.y ) -  
                (p0.y * p1.x + p1.y * p2.x + p2.y * p3.x + p3.y * p0.x)) / 2.0;
 
-
         // Calculate centroid
         centroid.x = (p0.x + p1.x + p2.x + p3.x) / 4.0;
         centroid.y = (p0.y + p1.y + p2.y + p3.y) / 4.0;
@@ -67,7 +66,7 @@ public:
     std::vector<Cell> cells;      // List of triangles in the mesh
     std::vector<Face> faces;              // List of faces in the mesh
     std::unordered_map<std::pair<std::size_t, std::size_t>, std::size_t, pair_hash> faceMap; // Mapping from node indices to face indices
-
+    std::vector<Node*> nodeMap; // Mapping from node ID to corresponding Node pointer
     // Function to read mesh data from GMSH
     void readFromGmsh(const std::string &filename) {
         try {
@@ -106,13 +105,20 @@ public:
 
             createFaces();
             perimeterCells();
+            generateNodeMap();
         } catch (const std::exception &e) {
             std::cerr << "Exception occurred: " << e.what() << std::endl;
             gmsh::finalize();
             throw;
         }
     }
-   
+    // Function to generate the node ID to Node pointer map
+    void generateNodeMap() {
+        nodeMap.resize(nodes.size());
+        for (auto& node : nodes) {
+            nodeMap[node.id] = &node;
+        }
+    }
     // Function to create faces from triangles
     void createFaces() {
     for (std::size_t i = 0; i < cells.size(); ++i) {
