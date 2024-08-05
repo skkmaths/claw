@@ -1,6 +1,5 @@
 #include <cassert>
 
-
 // Node structure to represent a mesh node
 struct Node {
     double x, y, z;  // Coordinates of the node
@@ -36,7 +35,6 @@ struct Cell {
         centroid.z = (p0.z + p1.z + p2.z + p3.z) / 4.0;
     }
 };
-
 // Face structure to represent a mesh face
 struct Face {
     std::vector<Node*> nodes; // Pointers to the nodes that form the face
@@ -51,7 +49,6 @@ struct Face {
     Face(const std::vector<Node*>& nodes, Cell* left, Cell* right)
         : nodes(nodes), leftCell(left), rightCell(right), isBoundary(right == nullptr) {}
 };
-
 // Custom hash function for std::pair of indices
 struct pair_hash {
     template <class T1, class T2>
@@ -61,7 +58,6 @@ struct pair_hash {
         return hash1 ^ (hash2 << 1);
     }
 };
-
 // Mesh class to store nodes, triangles, and faces
 class Mesh {
 public:
@@ -176,7 +172,7 @@ public:
     computeFaceNormals();
     computeFaceLength();
 }
-
+    // To compute face length 
     void computeFaceLength()
     {  for (auto& face : faces)
        {
@@ -185,6 +181,7 @@ public:
           face.length = std::sqrt( std::pow (p0->x-p1->x,2) + std::pow (p0->y - p1->y,2) );
        }
     }
+    // To compute perimeter of each cell
         void perimeterCells()
     {
         for( auto &cell : cells)
@@ -210,8 +207,6 @@ public:
             }
         }
     }
-
-
     // Function to compute normal vector to a face from the centroid of a triangle
     Node computeNormalToFace(const std::vector<Node*>& faceNodes, const Node& centroid) const {
         const auto& p0 = *faceNodes[0];
@@ -253,7 +248,6 @@ public:
             std::cout << "\n";
         }
     }
-
     // Function to print details of all faces
     void printFaces() const {
         for (std::size_t i = 0; i < faces.size(); ++i) {
