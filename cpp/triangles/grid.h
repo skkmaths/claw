@@ -202,6 +202,7 @@ public:
         // Vector from centroid to a point on the face
         Node foot;
         Node vector;
+        /*
         double xbar = p1.x - p0.x;
         double ybar = p1.y - p0.y;
         double lam = (xbar * (centroid.x - p1.x) + ybar * (centroid.y - p1.y)) / (xbar * xbar + ybar * ybar);
@@ -211,14 +212,13 @@ public:
         vector.x = foot.x - centroid.x;
         vector.y = foot.y - centroid.y;
         vector.z = foot.z - centroid.z;
-
-        // Calculate the normal (perpendicular to the face) in 2D
-        double length = std::sqrt(vector.x * vector.x + vector.y * vector.y);
-        if (length != 0) {
-            vector.x /= length;
-            vector.y /= length;
-        }
-
+        */
+        double dx = p1.x - p0.x;
+        double dy = p1.y - p0.y;
+        double length = std::sqrt(dx * dx + dy * dy);
+        vector.x = dy / length;
+        vector.y = -dx / length;
+        assert( (p0.x-centroid.x ) * vector.x + (p0.y - centroid.y) * vector.y >0 && "Error in computing face normal"); 
         return vector;
     }
 
