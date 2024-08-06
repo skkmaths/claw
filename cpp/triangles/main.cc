@@ -10,6 +10,14 @@
 #include"grid.h"
 #include"vis.h"
 
+// Advection velocity
+Node velocity(const double& x, const double& y)
+{
+    Node v;
+    v.x = 1;
+    v.y = 1;
+    return v;
+}
 // Initial condition function
 double initialCondition(double x, double y) {
     double r = std::sqrt(pow(x - 0.2, 2) + pow(y - 0.2, 2));
@@ -38,24 +46,21 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             Node n = face.normalLeft; // Normal vector pointing towards right triangle
             Cell* L = face.leftCell;
             Cell* R = face.rightCell;
-            //double lengthface = std::sqrt(std::pow(face.nodes[0]->x - face.nodes[1]->x, 2) + std::pow(face.nodes[0]->y - face.nodes[1]->y, 2));
-            //double theta = std::acos(n.x); // Angle between right normal and positive x axis
-            //if (n.y > 0.0) theta = std::acos(n.x);
-            //else theta = 2.0 * M_PI - std::acos(n.x);
-            //double speed_xi = std::cos(theta) + std::sin(theta); // Speed in the xi direction of the transformed PDE
-            //double splus = std::max(speed_xi, 0.0);
-            //double sminus = std::min(speed_xi, 0.0);
+            // Angle between right normal and positive x axis
+            //double theta = (n.y > 0.0) ? std::acos(n.x) : 2.0 * M_PI - std::acos(n.x);
             double flux;
-            //if (n.x + n.y > 0.0) flux = sol[L->id] * (n.x + n.y);
-            //else flux = sol[R->id] * (n.x + n.y);
-            double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
-            flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-(sol[R->id] -sol[L->id])/lam);
+            //double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
+            //flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-(sol[R->id] -sol[L->id])/lam);
+            // compute advection velocity at face midpoint
+            Node vel = velocity(face.midpoint.x, face.midpoint.y);
+            double velnormal = vel.x * n.x + vel.y * n.y;
+            flux = (velnormal>0)? velnormal * sol[L->id] :velnormal * sol[R->id];
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
         }
     }
 }
-// Compute max of solution vector
+// Compute max of solution vector 
 double solmax(const std::vector<double>& vec) {
     auto maxIt = std::max_element(vec.begin(), vec.end());
     if (maxIt != vec.end()) {
@@ -86,11 +91,12 @@ int main() {
         double dt = 0.001;
         double cfl = 0.9;
         double time = 0.0;
-        double Tf = 0.5;
+        double Tf = 1.0;
         double speed = 0.0;
         //h = minfacelength(mesh);
         for (auto &cell : mesh.cells)  speed= std::max(speed, cell.perimeter/cell.area);   
         dt = cfl/ speed;
+        dt = 0.001;
         unsigned int save_freq = 1;
         unsigned int iter = 0;
         std::vector<double> solution, res, ue;
