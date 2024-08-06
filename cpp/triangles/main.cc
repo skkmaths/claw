@@ -11,7 +11,7 @@
 #include"vis.h"
 
 // Advection velocity
-Node velocity(const double& x, const double& y)
+Node velocity(const double& x, const  double& y)
 {
     Node v;
     v.x = y;
@@ -19,20 +19,20 @@ Node velocity(const double& x, const double& y)
     return v;
 }
 // Initial condition function
-double initialCondition(double x, double y) {
+double initialCondition(const double& x,const  double& y){
     double r = std::sqrt(pow(x + 0.3, 2) + pow(y + 0.3, 2));
     if (r < 0.1) return 1.0;
     else return 0.0;
 }
 // Initialize the solution
-void initialize(const std::vector<Cell> cells, std::vector<double>& solution) {
+void initialize(const std::vector<Cell>& cells, std::vector<double>& solution) {
     solution.resize(cells.size());
     for (const auto &cell : cells) {
         solution[cell.id] = initialCondition(cell.centroid.x, cell.centroid.y);
     }
 }
 // exact the solution
-void exact(const std::vector<Cell> cells, std::vector<double>& ue, const double& t) {
+void exact(const std::vector<Cell>& cells, std::vector<double>& ue, const double& t) {
     ue.resize(cells.size());
     for (const auto &cell : cells) {
         ue[cell.id] = initialCondition(cell.centroid.x-t, cell.centroid.y-t);
