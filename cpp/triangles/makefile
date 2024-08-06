@@ -19,10 +19,6 @@ MSH_FILE = mesh.msh
 # Default target
 all: generate $(TARGET)
 
-# Rule to generate mesh file
-generate:
-	gmsh -2 $(GEO_FILE) -o $(MSH_FILE)
-
 # Link the target executable
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)

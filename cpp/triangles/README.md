@@ -20,3 +20,10 @@ If a face is a part of the boundary, then right cell is always marked as -1 as t
 2. Fixing CFL and use of various numfluxes.
 3. Need to assign the ID s for Cells and update the vtk file.
 4. Initialize the solution by finding the average through quadrature
+
+## How to run
+
+$gmsh -2 meshfile.geo -o mesh.msh
+$make clean
+$make
+$./main
