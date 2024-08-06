@@ -83,10 +83,9 @@ int main() {
     try {
         gmsh::initialize();
         Mesh mesh;
+        std::cout<<"Reading mesh....."<<std::endl;
         mesh.readFromGmsh("mesh.msh");
-        double area = 0.0;
-        for(auto &cell : mesh.cells)
-        area += cell.area;
+        std::cout<<"Reading mesh completed"<<std::endl;
         std::cout<<"area="<<area<<std::endl;
         double dt = 0.001;
         double cfl = 0.9;
