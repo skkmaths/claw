@@ -14,13 +14,13 @@
 Node velocity(const double& x, const double& y)
 {
     Node v;
-    v.x = 1;
-    v.y = 1;
+    v.x = y;
+    v.y = -x;
     return v;
 }
 // Initial condition function
 double initialCondition(double x, double y) {
-    double r = std::sqrt(pow(x + 0.75, 2) + pow(y + 0.75, 2));
+    double r = std::sqrt(pow(x + 0.3, 2) + pow(y + 0.3, 2));
     if (r < 0.1) return 1.0;
     else return 0.0;
 }
@@ -54,7 +54,7 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             // compute advection velocity at face midpoint
             Node vel = velocity(face.midpoint.x, face.midpoint.y);
             double velnormal = vel.x * n.x + vel.y * n.y;
-            flux = (velnormal>0)? velnormal * sol[L->id] :velnormal * sol[R->id];
+            flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id];
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
         }
@@ -91,13 +91,16 @@ int main() {
         double dt = 0.001;
         double cfl = 0.9;
         double time = 0.0;
-        double Tf = 1.0;
+        double Tf = 2.0*M_PI;
         double speed = 0.0;
         //h = minfacelength(mesh);
-        for (auto &cell : mesh.cells)  speed= std::max(speed, cell.perimeter/cell.area);   
+        for (auto &cell : mesh.cells) 
+        {   Node vel = velocity(cell.centroid.x, cell.centroid.y);
+            speed= std::max(speed, std::sqrt(vel.x*vel.x + vel.y*vel.y )* cell.perimeter/cell.area);   
+        }
         dt = cfl/ speed;
-        dt = 0.001;
-        unsigned int save_freq = 1;
+        
+        unsigned int save_freq = 10;
         unsigned int iter = 0;
         std::vector<double> solution, res, ue;
         res.resize(mesh.cells.size(),0.0);
