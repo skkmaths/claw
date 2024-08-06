@@ -20,7 +20,7 @@ Node velocity(const double& x, const double& y)
 }
 // Initial condition function
 double initialCondition(double x, double y) {
-    double r = std::sqrt(pow(x - 0.2, 2) + pow(y - 0.2, 2));
+    double r = std::sqrt(pow(x + 0.75, 2) + pow(y + 0.75, 2));
     if (r < 0.1) return 1.0;
     else return 0.0;
 }
