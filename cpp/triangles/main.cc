@@ -86,7 +86,6 @@ int main() {
         std::cout<<"Reading mesh....."<<std::endl;
         mesh.readFromGmsh("mesh.msh");
         std::cout<<"Reading mesh completed"<<std::endl;
-        std::cout<<"area="<<area<<std::endl;
         double dt = 0.001;
         double cfl = 0.9;
         double time = 0.0;
