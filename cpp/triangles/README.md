@@ -14,7 +14,7 @@ ranging from 0 to size of Nodes and Cells respectively. For each Face, we can ac
 
 If a face is a part of the boundary, then right cell is always marked as -1 as there is no right cell. 
 
-##Things to do
+## Things to do
 
 1. Implementation of boundary condition: Periodic, Dirichlet, Inflow, Outflow etc.
 2. Fixing CFL and use of various numfluxes.
