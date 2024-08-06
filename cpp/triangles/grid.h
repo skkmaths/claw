@@ -198,28 +198,18 @@ public:
     Node computeNormalToFace(const std::vector<Node*>& faceNodes, const Node& centroid) const {
         const auto& p0 = *faceNodes[0];
         const auto& p1 = *faceNodes[1];
-
         // Vector from centroid to a point on the face
-        Node foot;
-        Node vector;
-        /*
-        double xbar = p1.x - p0.x;
-        double ybar = p1.y - p0.y;
-        double lam = (xbar * (centroid.x - p1.x) + ybar * (centroid.y - p1.y)) / (xbar * xbar + ybar * ybar);
-        foot.x = p1.x + lam * xbar;
-        foot.y = p1.y + lam * ybar;
-        foot.z = centroid.z;
-        vector.x = foot.x - centroid.x;
-        vector.y = foot.y - centroid.y;
-        vector.z = foot.z - centroid.z;
-        */
+        Node vnormal;
         double dx = p1.x - p0.x;
         double dy = p1.y - p0.y;
         double length = std::sqrt(dx * dx + dy * dy);
-        vector.x = dy / length;
-        vector.y = -dx / length;
-        assert( (p0.x-centroid.x ) * vector.x + (p0.y - centroid.y) * vector.y >0 && "Error in computing face normal"); 
-        return vector;
+        vnormal.x = dy / length;
+        vnormal.y = -dx / length;
+        if(  (p0.x-centroid.x ) * vnormal.x + (p0.y - centroid.y) * vnormal.y <0 ){
+        vnormal.x *=-1;
+        vnormal.y *=-1;
+        }
+        return vnormal;
     }
 
     void printCells() const {
