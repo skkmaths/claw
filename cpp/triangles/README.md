@@ -1,4 +1,4 @@
-## TwoD FVM code  on unstructured quadrilateral grids
+## TwoD FVM code  on unstructured triangular grids
 
 This can solve PDE of the form $u_t + v_1(x,y) u_x + v_2(x,y) u_y = 0,$ where $v= (v_1,v_2)$ is the advection velocity.
 
