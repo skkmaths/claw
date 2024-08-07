@@ -67,17 +67,14 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
     std::fill(res.begin(), res.end(), 0.0);
     for (const auto& face : mesh.faces) {
         if (!face.isBoundary) { // Check if the face is not a boundary
-            Node n = face.normalLeft; // Normal vector pointing towards right triangle
+            double flux;
+            Node n = face.normalLeft; // Outward unit normal to leftcell
             Cell* L = face.leftCell;
             Cell* R = face.rightCell;
-            // Angle between right normal and positive x axis
-            //double theta = (n.y > 0.0) ? std::acos(n.x) : 2.0 * M_PI - std::acos(n.x);
-            double flux;
+            Node vel = velocity(face.midpoint.x, face.midpoint.y); // Advection velocity at face mid point
+            double velnormal = vel.x * n.x + vel.y * n.y;
             //double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
             //flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-(sol[R->id] -sol[L->id])/lam);
-            // compute advection velocity at face midpoint
-            Node vel = velocity(face.midpoint.x, face.midpoint.y);
-            double velnormal = vel.x * n.x + vel.y * n.y;
             flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id];
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
@@ -110,25 +107,23 @@ int main() {
         std::cout<<"Reading mesh....."<<std::endl;
         mesh.readFromGmsh("mesh.msh");
         std::cout<<"Reading mesh completed"<<std::endl;
-        double dt = 0.001;
+        double dt ;
         double cfl = 0.9;
         double time = 0.0;
-        double Tf = 2.0*M_PI;
+        double Tf = 2.0*M_PI; // Final time
         double speed = 0.0;
-        //h = minfacelength(mesh);
+        // Compute dt
         for (auto &cell : mesh.cells) 
         {   Node vel = velocity(cell.centroid.x, cell.centroid.y);
             speed= std::max(speed, std::sqrt(vel.x*vel.x + vel.y*vel.y )* cell.perimeter/cell.area);   
         }
         dt = cfl/ speed;
-        
         unsigned int save_freq = 10;
         unsigned int iter = 0;
-        std::vector<double> solution, res, ue;
+        std::vector<double> solution, res;
         res.resize(mesh.cells.size(),0.0);
         initialize(mesh.cells, solution); // initialize solution vector
-        //exact(mesh.cells, ue, time);
-        savesol(mesh, solution, time);
+        savesol(mesh, solution, time); // save intial datas
         while (time < Tf)
         {
             if (time + dt >Tf){ dt = Tf-time;}
