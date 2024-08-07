@@ -32,3 +32,9 @@ $ make
 $ ./run
 
 Solutions are saved in ./sol directory. You can visualize using ViSiT or Paraview
+
+## Some usual mistakes
+
+1. vector<double> sol(10); sol.pusback(a); --> is not correct. When you use pushback, do 
+
+not allocate the vec. Declare it as vect<double> sol;
