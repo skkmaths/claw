@@ -29,6 +29,6 @@ $ gmsh -2 meshfile.geo -o mesh.msh
 
 $ make
 
-$ ./main
+$ ./run
 
 Solutions are saved in ./sol directory. You can visualize using ViSiT or Paraview
