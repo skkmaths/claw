@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++11 -Wall
 INCLUDES = -I/opt/homebrew/include $(shell pkg-config --cflags vtk)
 LDFLAGS = -L/opt/homebrew/lib $(shell pkg-config --libs vtk) -lgmsh
 # Target executable
-TARGET = main
+TARGET = run
 
 # Source files
 SRCS = main.cc
@@ -19,10 +19,6 @@ MSH_FILE = mesh.msh
 # Default target
 all: generate $(TARGET)
 
-# Rule to generate mesh file
-generate:
-	gmsh -2 $(GEO_FILE) -o $(MSH_FILE)
-
 # Link the target executable
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
@@ -33,7 +29,7 @@ $(TARGET): $(OBJS)
 
 # Clean target to remove generated files
 clean:
-	rm -f $(TARGET) $(OBJS) $(MSH_FILE)
+	rm -f $(TARGET) $(OBJS)
 
 # Phony targets
 .PHONY: all clean generate
