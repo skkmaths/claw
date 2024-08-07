@@ -23,7 +23,10 @@ If a face is a part of the boundary, then right cell is always marked as -1 as t
 
 ## How to run
 
-$gmsh -2 meshfile.geo -o mesh.msh
-$make clean
-$make
-$./main
+$ gmsh -2 meshfile.geo -o mesh.msh
+
+$ make clean
+
+$ make
+
+$ ./main
