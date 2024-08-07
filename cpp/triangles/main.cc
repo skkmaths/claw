@@ -20,9 +20,33 @@ Node velocity(const double& x, const  double& y)
 }
 // Initial condition function
 double initialCondition(const double& x,const  double& y){
-    double r = std::sqrt(pow(x + 0.3, 2) + pow(y + 0.3, 2));
-    if (r < 0.1) return 1.0;
+    std::string ic = "expo";
+    if (ic == "nonsmooth" ) // solid body rotation non smooth
+    {    double r = sqrt( pow(x+0.45,2)+pow(y,2));
+         if ( x> 0.1 & x<0.6 & y>-0.25 & y< 0.25  ) 
+         {
+            return 1.0;
+         }
+         else if ( r < 0.35)
+         {
+            return 1-r/0.35;
+         }
     else return 0.0;
+    }
+    // Smooth initial data
+    else if ( ic == "smooth") // solid body rotation
+    {   double r = sqrt( pow(x+0.3,2)+pow(y+0.3,2));
+        if ( r < 0.2){ return 1-r/0.2; }
+        else return 0.0;
+    }
+    else if( ic == "expo")
+    {
+        return exp(-100.0*( pow(x+0.3,2) + pow(y+0.3,2) ));
+    }
+    else 
+    {    std::cout<<" Unknown ic"<<std::endl;
+         abort();
+    }
 }
 // Initialize the solution
 void initialize(const std::vector<Cell>& cells, std::vector<double>& solution) {
