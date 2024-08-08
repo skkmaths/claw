@@ -11,7 +11,7 @@
 #include"vis.h"
 
 // Define the flux type
-std::string flux_type = "upwind";
+std::string flux_type = "lf";
 
 // Advection velocity
 Node velocity(const double& x, const  double& y)
@@ -155,6 +155,7 @@ int main() {
                    savesol(mesh, solution, time);
                }
         }
+        std::cout<<"Total number of cells = "<<mesh.cells.size()<<std::endl;
         gmsh::finalize();
     } catch (const std::exception &e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
