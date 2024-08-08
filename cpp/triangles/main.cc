@@ -10,6 +10,9 @@
 #include"grid.h"
 #include"vis.h"
 
+// Define the flux type
+std::string flux_type = "upwind";
+
 // Advection velocity
 Node velocity(const double& x, const  double& y)
 {
@@ -73,9 +76,12 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             Cell* R = face.rightCell;
             Node vel = velocity(face.midpoint.x, face.midpoint.y); // Advection velocity at face mid point
             double velnormal = vel.x * n.x + vel.y * n.y;
-            //double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
-            flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id]; // Upwind flux
-            //flux = 0.5 * ( velnormal * (sol[L->id] + sol[R->id] ) - (sol[R->id] - sol[L->id])/lam); // Lax-Friedrich Flux
+            double speed = std::max( std::abs(vel.x), std::abs(vel.x));
+            if ( flux_type == "lf") 
+            flux = 0.5 * ( velnormal * (sol[L->id] + sol[R->id] ) - (sol[R->id] - sol[L->id])*speed); // Lax-Friedrich Flux
+            else if( flux_type == "upwind")
+            flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id];
+            else {std::cout<<"Unknown flux type"<<std::endl; abort();}
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
         }
@@ -111,7 +117,7 @@ int main() {
         double cfl = 0.9;
         double time = 0.0;
         double Tf = 2.0*M_PI; // Final time
-        double speed = 0.0;
+        double speed = -1e-20;
         // Compute dt
         for (auto &cell : mesh.cells) 
         {   Node vel = velocity(cell.centroid.x, cell.centroid.y);
