@@ -245,3 +245,13 @@ public:
     }
     
 };
+
+std::string boundary(Face& face)
+{
+    Node p0 = face.nodes[0];
+    Node p1 = face.nodes[1];
+
+    p0.x -0.0
+
+    (x2​−x1​)×(y4​−y3​)=(y2​−y1​)×(x4​−x3​)
+}
