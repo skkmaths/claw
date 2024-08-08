@@ -76,7 +76,7 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             Cell* R = face.rightCell;
             Node vel = velocity(face.midpoint.x, face.midpoint.y); // Advection velocity at face mid point
             double velnormal = vel.x * n.x + vel.y * n.y;
-            double speed = std::max( std::abs(vel.x), std::abs(vel.x));
+            double speed = std::abs(velnormal);//std::max( std::abs(vel.x), std::abs(vel.x));
             if ( flux_type == "lf") 
             flux = 0.5 * ( velnormal * (sol[L->id] + sol[R->id] ) - (sol[R->id] - sol[L->id])*speed); // Lax-Friedrich Flux
             else if( flux_type == "upwind")
