@@ -44,7 +44,7 @@ double initialCondition(const double& x,const  double& y){
     }
     else if( ic == "expo")
     {
-        return exp(-100.0*( pow(x+0.3,2) + pow(y+0.3,2) ));
+        return exp(-100.0*( pow(x-0.3,2) + pow(y,2) ));
     }
     else 
     {    std::cout<<" Unknown ic"<<std::endl;
@@ -69,22 +69,32 @@ void exact(const std::vector<Cell>& cells, std::vector<double>& ue, const double
 void compute_residue(const std::vector<double> &sol, std::vector<double> &res, const Mesh &mesh, const double& dt) {
     std::fill(res.begin(), res.end(), 0.0);
     for (const auto& face : mesh.faces) {
-        if (!face.isBoundary) { // Check if the face is not a boundary
-            double flux;
+        
+            double flux =;
             Node n = face.normalLeft; // Outward unit normal to leftcell
             Cell* L = face.leftCell;
             Cell* R = face.rightCell;
             Node vel = velocity(face.midpoint.x, face.midpoint.y); // Advection velocity at face mid point
             double velnormal = vel.x * n.x + vel.y * n.y;
             double speed = std::abs(velnormal);//std::max( std::abs(vel.x), std::abs(vel.x));
-            if ( flux_type == "lf") 
-            flux = 0.5 * ( velnormal * (sol[L->id] + sol[R->id] ) - (sol[R->id] - sol[L->id])*speed); // Lax-Friedrich Flux
-            else if( flux_type == "upwind")
-            flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id];
-            else {std::cout<<"Unknown flux type"<<std::endl; abort();}
-            res[L->id] += face.length * flux / L->area;
-            res[R->id] -= face.length * flux / R->area;
-        }
+            if (!face.isBoundary) { // Check if the face is not a boundary
+                if ( flux_type == "lf") 
+                flux = 0.5 * ( velnormal * (sol[L->id] + sol[R->id] ) - (sol[R->id] - sol[L->id])*speed); // Lax-Friedrich Flux
+                else if( flux_type == "upwind")
+                flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id];
+                else {std::cout<<"Unknown flux type"<<std::endl; abort();}
+                res[L->id] += face.length * flux / L->area;
+                res[R->id] -= face.length * flux / R->area;
+            }
+            else
+            {
+                if( boundary(face) == "left")
+                    flux  = velnormal * sol[L->id];  // outflow
+                if(boundary(face) == "bottom")
+                    flux  = velnormal * sol[R->id]; // inflow
+                else flux = 0.0;
+                res[L->id] += face.length * flux / L->area;
+            }
     }
 }
 // Compute max of solution vector 
@@ -112,7 +122,7 @@ int main() {
         Mesh mesh;
         std::cout<<"Reading mesh....."<<std::endl;
         mesh.readFromGmsh("mesh.msh");
-        std::cout<<"Reading mesh completed"<<std::endl;
+        std::cout<<"Reading mesh completed."<<std::endl;
         double dt ;
         double cfl = 0.9;
         double time = 0.0;
