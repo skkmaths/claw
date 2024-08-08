@@ -156,6 +156,7 @@ int main() {
                }
         }
         std::cout<<"Total number of cells = "<<mesh.cells.size()<<std::endl;
+        savesol(mesh, solution, time);
         gmsh::finalize();
     } catch (const std::exception &e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
