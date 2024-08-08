@@ -9,7 +9,8 @@
 #include <sys/stat.h>
 #include"grid.h"
 #include"vis.h"
-
+// Define the flux type
+std::string flux_type = "lf";
 // Advection velocity
 Node velocity(const double& x, const  double& y)
 {
@@ -19,7 +20,7 @@ Node velocity(const double& x, const  double& y)
     return v;
 }
 double initialCondition(const double& x,const  double& y){
-    std::string ic = "nonsmooth";
+    std::string ic = "smooth";
     if (ic == "nonsmooth" ) // solid body rotation non smooth
     {    double r = sqrt( pow(x+0.45,2)+pow(y,2));
          if ( x> 0.1 & x<0.6 & y>-0.25 & y< 0.25  ) 
@@ -74,9 +75,12 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, c
             Cell* R = face.rightCell;
             Node vel = velocity(face.midpoint.x, face.midpoint.y); // Advection velocity at face mid point
             double velnormal = vel.x * n.x + vel.y * n.y;
-            //double lam = std::max(L->perimeter/L->area, R->perimeter/R->area)*dt;
-            //flux = 0.5*( (n.x + n.y)*(sol[L->id]+ sol[R->id])-(sol[R->id] -sol[L->id])/lam);
+            double speed = std::abs(velnormal);
+            if ( flux_type == "lf") 
+            flux = 0.5 * ( velnormal * (sol[L->id] + sol[R->id] ) - (sol[R->id] - sol[L->id])*speed); // Lax-Friedrich Flux
+            else if( flux_type == "upwind")
             flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id];
+            else {std::cout<<"Unknown flux type"<<std::endl; abort();}
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
         }
@@ -105,16 +109,18 @@ int main() {
     try {
         gmsh::initialize();
         Mesh mesh;
+        std::cout<<"Reading mesh....."<<std::endl;
         mesh.readFromGmsh("mesh.msh");
+        std::cout<<"Reading mesh completed"<<std::endl;
         double dt ;
         double time = 0.0;
         double Tf = 2.0* M_PI; // final time
         double cfl = 0.5;
         double speed = -1e-20;
-        double dx = 0.01;
-        double dy = 0.01;
         for(auto &cell : mesh.cells)
-        speed = std::max( speed, 1.0/dx + 1.0/dy + 1e-14 );
+        {   Node vel = velocity(cell.centroid.x, cell.centroid.y);
+            speed= std::max(speed, std::sqrt(vel.x*vel.x + vel.y*vel.y )* cell.perimeter/cell.area);   
+        }
         dt = cfl/speed;       
         unsigned int save_freq = 10;
         unsigned int iter = 0;
@@ -151,7 +157,8 @@ int main() {
                }
             
         } 
-        //savesol(mesh, solution, time);
+        std::cout<<"Total number of cells = "<<mesh.cells.size()<<std::endl;
+        savesol(mesh, solution, time);
         gmsh::finalize();
     } catch (const std::exception &e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
