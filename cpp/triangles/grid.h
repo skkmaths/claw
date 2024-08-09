@@ -3,7 +3,7 @@
 // Boundary struct to store connected boundary segments and their IDs
 struct Boundary {
     std::string id;
-    std::vector<Node> nodes;  // Nodes defining the boundary
+    std::vector<std::tuple<double, double>> nodes;  // Vector of tuples to store (x, y) coordinates
 };
 
 // Node structure to represent a mesh node
@@ -253,7 +253,28 @@ public:
 };
 
 // Define the boundaries with its names
-std::vector<Boundary> boundaries(4);
+std::vector<Boundary> boundaries;
+Boundary boundary;
+boundary.id = "left";
+boundary.nodes.push_back(std::make_tuple(0.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
+boundary.nodes.push_back(std::make_tuple(0.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
+boundaries.push_back(boundary);
+
+boundary.id = "right";
+boundary.nodes.push_back(std::make_tuple(1.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
+boundary.nodes.push_back(std::make_tuple(1.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
+boundaries.push_back(boundary);
+
+boundary.id = "bottom";
+boundary.nodes.push_back(std::make_tuple(0.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
+boundary.nodes.push_back(std::make_tuple(1.0, 0.0)); // Add another node with coordinates (3.0, 4.0)
+boundaries.push_back(boundary);
+
+boundary.id = "top";
+boundary.nodes.push_back(std::make_tuple(1.0, 1.0)); // Add a node with coordinates (1.0, 2.0)
+boundary.nodes.push_back(std::make_tuple(0.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
+boundaries.push_back(boundary);
+
 // Points form the boundaries
 Node Node1, Node2, Node3, Node4;
 Node1.x =  0;
