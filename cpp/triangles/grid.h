@@ -1,4 +1,5 @@
 #include <cassert>
+using namespace std;
 
 // Boundary struct to store connected boundary segments and their IDs
 struct Boundary {
@@ -66,6 +67,26 @@ struct pair_hash {
     }
 };
 
+
+// Function to check if a nodes lies on a line defined by two points
+bool isNodesOnLine(const Node& node1, const Node& node2, const std::tuple<double, double>& point1, const std::tuple<double, double>& point2) {
+    double x1 = std::get<0>(point1), y1 = std::get<1>(point1);
+    double x2 = std::get<0>(point2), y2 = std::get<1>(point2);
+    
+    // Check if the first node lies on the line
+    double lhs1 = (y2 - y1) * (node1.x - x1);
+    double rhs1 = (node1.y - y1) * (x2 - x1);
+    bool isNode1OnLine = std::abs(lhs1 - rhs1) < 1e-9;
+    
+    // Check if the second node lies on the line
+    double lhs2 = (y2 - y1) * (node2.x - x1);
+    double rhs2 = (node2.y - y1) * (x2 - x1);
+    bool isNode2OnLine = std::abs(lhs2 - rhs2) < 1e-9;
+    
+    // Return true only if both nodes lie on the line
+    return isNode1OnLine && isNode2OnLine;
+}
+
 // Mesh class to store nodes, cells, and faces
 class Mesh {
 public:
@@ -74,6 +95,8 @@ public:
     std::vector<Face> faces;              // List of faces in the mesh
     std::unordered_map<std::pair<std::size_t, std::size_t>, std::size_t, pair_hash> faceMap; // Mapping from node indices to face indices
     std::vector<Node*> nodeMap; // Mapping from node ID to corresponding Node pointer
+    std::vector<Boundary> boundaries;  // To store the boundaries
+    std::string get_boundary_id(const Face& face);
     // Function to read mesh data from GMSH
     void readFromGmsh(const std::string &filename) {
         try {
@@ -111,12 +134,14 @@ public:
             perimeterCell();
             generateCellid();
             generateNodeMap();
+            defineboundaries(); 
         } catch (const std::exception &e) {
             std::cerr << "Exception occurred: " << e.what() << std::endl;
             gmsh::finalize();
             throw;
         }
-    }
+    } // end of readmesh function
+
     // generate the nodeMap vector
     void generateNodeMap() {
         nodeMap.resize(nodes.size());
@@ -250,58 +275,45 @@ public:
         }
     }
     
-};
 
-// Define the boundaries with its names
-std::vector<Boundary> boundaries;
-Boundary boundary;
-boundary.id = "left";
-boundary.nodes.push_back(std::make_tuple(0.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
-boundary.nodes.push_back(std::make_tuple(0.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
-boundaries.push_back(boundary);
-
-boundary.id = "right";
-boundary.nodes.push_back(std::make_tuple(1.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
-boundary.nodes.push_back(std::make_tuple(1.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
-boundaries.push_back(boundary);
-
-boundary.id = "bottom";
-boundary.nodes.push_back(std::make_tuple(0.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
-boundary.nodes.push_back(std::make_tuple(1.0, 0.0)); // Add another node with coordinates (3.0, 4.0)
-boundaries.push_back(boundary);
-
-boundary.id = "top";
-boundary.nodes.push_back(std::make_tuple(1.0, 1.0)); // Add a node with coordinates (1.0, 2.0)
-boundary.nodes.push_back(std::make_tuple(0.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
-boundaries.push_back(boundary);
-
-// Points form the boundaries
-Node Node1, Node2, Node3, Node4;
-Node1.x =  0;
-Node1.y =  0;
-Node2.x =  1.0;
-Node2.y = 0.0;
-Node3.x =  1.0;
-Node3.y =  1.0;
-Node4.x =  0.0;
-Node4.y = 1.0;
-boundaries[0].id = "left";
-boundaries[1].id = "right";
-boundaries[2].id = "bottom";
-boundaries[3].id "top";
-boundaries[0].nodes[0] = Node1;
-
-
-std::string boundary(Face& face)
-{   std::string id;
-    Node p0 = face.nodes[0];
-    Node p1 = face.nodes[1];
-    for(auto &bdry : boundaries)
+    void defineboundaries()
     {
-    Node ao = bdry.nodes[0];
-    Node a1 = bdry.nodes[1];
-    //Check 
-    return id; 
-    break();
+        // Create boundaries with  names
+        Boundary boundary;
+
+        boundary.id = "left";
+        boundary.nodes.push_back(std::make_tuple(0.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
+        boundary.nodes.push_back(std::make_tuple(0.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
+        boundaries.push_back(boundary);
+
+        boundary = Boundary(); // Clear the boundary object
+        boundary.id = "right";
+        boundary.nodes.push_back(std::make_tuple(1.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
+        boundary.nodes.push_back(std::make_tuple(1.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
+        boundaries.push_back(boundary);
+
+        boundary = Boundary(); // Clear the boundary object
+        boundary.id = "bottom";
+        boundary.nodes.push_back(std::make_tuple(0.0, 0.0)); // Add a node with coordinates (1.0, 2.0)
+        boundary.nodes.push_back(std::make_tuple(1.0, 0.0)); // Add another node with coordinates (3.0, 4.0)
+        boundaries.push_back(boundary);
+
+        boundary = Boundary(); // Clear the boundary object
+        boundary.id = "top";
+        boundary.nodes.push_back(std::make_tuple(1.0, 1.0)); // Add a node with coordinates (1.0, 2.0)
+        boundary.nodes.push_back(std::make_tuple(0.0, 1.0)); // Add another node with coordinates (3.0, 4.0)
+        boundaries.push_back(boundary);
     }
+};
+// function to get the boundary id of a given face
+std::string Mesh::get_boundary_id(const Face& face)
+{   
+    Node* p0 = face.nodes[0];
+    Node* p1 = face.nodes[1];
+    for(const auto &bdry : boundaries)
+        if( isNodesOnLine(*p0, *p1, bdry.nodes[0], bdry.nodes[1]) )
+        return bdry.id; 
+    return "not_on_boundary"; // Return this if no boundary matches
 }
+
+
