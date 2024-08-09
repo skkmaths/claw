@@ -1,5 +1,11 @@
 #include <cassert>
 
+// Boundary struct to store connected boundary segments and their IDs
+struct Boundary {
+    std::string id;
+    std::vector<Node> nodes;  // Nodes defining the boundary
+};
+
 // Node structure to represent a mesh node
 struct Node {
     double x, y, z;  // Coordinates of the node
@@ -246,12 +252,35 @@ public:
     
 };
 
+// Define the boundaries with its names
+std::vector<Boundary> boundaries(4);
+// Points form the boundaries
+Node Node1, Node2, Node3, Node4;
+Node1.x =  0;
+Node1.y =  0;
+Node2.x =  1.0;
+Node2.y = 0.0;
+Node3.x =  1.0;
+Node3.y =  1.0;
+Node4.x =  0.0;
+Node4.y = 1.0;
+boundaries[0].id = "left";
+boundaries[1].id = "right";
+boundaries[2].id = "bottom";
+boundaries[3].id "top";
+boundaries[0].nodes[0] = Node1;
+
+
 std::string boundary(Face& face)
-{
+{   std::string id;
     Node p0 = face.nodes[0];
     Node p1 = face.nodes[1];
-
-    p0.x -0.0
-
-    (x2​−x1​)×(y4​−y3​)=(y2​−y1​)×(x4​−x3​)
+    for(auto &bdry : boundaries)
+    {
+    Node ao = bdry.nodes[0];
+    Node a1 = bdry.nodes[1];
+    //Check 
+    return id; 
+    break();
+    }
 }
