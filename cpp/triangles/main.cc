@@ -45,12 +45,16 @@ double initialCondition(const double& x,const  double& y){
     }
     else if( ic == "expo")
     {
-        return exp(-200.0*( pow(x-0.5,2) + pow(y-0.5,2) ));
+        return exp(-200.0*( pow(x+0.3,2) + pow(y-0.5,2) ));
     }
     else 
     {    std::cout<<" Unknown ic"<<std::endl;
          abort();
     }
+}
+// Exact solution for c1 = y, c2 = -x, of ut+c1ux+c2uy = 0
+double exactvaradv(const Node& p, const double& t) {
+   return initialCondition( std::cos(t) * p.x + std::sin(t) * p.y, -std::sin(t)* p.x + std::cos(t) *p.y);
 }
 // Initialize the solution
 void initialize(const std::vector<Cell>& cells, std::vector<double>& solution) {
@@ -59,7 +63,7 @@ void initialize(const std::vector<Cell>& cells, std::vector<double>& solution) {
         solution[cell.id] = initialCondition(cell.centroid.x, cell.centroid.y);
     }
 }
-// exact the solution
+// exact the solution of ut+ux+uy = 0
 void exact(const std::vector<Cell>& cells, std::vector<double>& ue, const double& t) {
     ue.resize(cells.size());
     for (const auto &cell : cells) {
@@ -67,9 +71,10 @@ void exact(const std::vector<Cell>& cells, std::vector<double>& ue, const double
     }
 }
 // To compute the residue RHS
-void compute_residue(const std::vector<double> &sol, std::vector<double> &res, Mesh &mesh, const double& dt) {
+void compute_residue(const std::vector<double> &sol, std::vector<double> &res, Mesh &mesh, const double& dt, const double& time) {
     std::fill(res.begin(), res.end(), 0.0);
-    for (const auto& face : mesh.faces) {
+    for (const auto& face : mesh.faces) 
+    {
         double flux;
         Node n = face.normalLeft; // Outward unit normal to leftcell
         Cell* L = face.leftCell;
@@ -87,18 +92,18 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, M
             res[R->id] -= face.length * flux / R->area;
         }
         else // if facee is on one of the boundaries
-        {
-            if( mesh.get_boundary_id(face) == "bottom") // outflow 
-            {   assert(L->id != -1 && "Error in the boundary face");
-                if ( flux_type == "lf") 
-                    flux = 0.5 * ( velnormal * (sol[L->id] + sol[R->id] ) - (sol[R->id] - sol[L->id])*speed); // Lax-Friedrich Flux
-                else if( flux_type == "upwind")
-                    flux = (velnormal>0)? velnormal * sol[L->id] : velnormal * sol[R->id];
-                else {std::cout<<"Unknown flux type"<<std::endl; abort();}
-                    res[L->id] += face.length * flux / L->area;
-                
+        {   assert(L->id != -1 && "Error in the boundary face");
+            std::string facebdryid = mesh.get_boundary_id(face);
+            if( facebdryid == "left" ) // inflow
+            {   
+                flux =  velnormal * exactvaradv(face.midpoint, time); 
+                res[L->id] += face.length * flux / L->area;  
+            } 
+            if ( facebdryid == "bottom") // outflow
+            {
+                flux = velnormal * sol[L->id];
+                res[L->id] += face.length * flux / L->area;  
             }
-                
         }
     }
 }
@@ -148,7 +153,7 @@ int main() {
         while (time < Tf)
         {
             if (time + dt >Tf){ dt = Tf-time;}
-            compute_residue(solution, res, mesh, dt);
+            compute_residue(solution, res, mesh, dt, time);
             // update solution
             for (auto& cell : mesh.cells)
             {
