@@ -10,7 +10,7 @@
 #include"grid.h"
 #include"vis.h"
 // Define the flux type
-std::string flux_type = "lf";
+std::string flux_type = "upwind";
 // Advection velocity
 Node velocity(const double& x, const  double& y)
 {
@@ -35,7 +35,7 @@ double initialCondition(const double& x,const  double& y){
     }
     // Smooth initial data
     else if ( ic == "smooth") // solid body rotation
-    {   double r = sqrt( pow(x-0.3,2)+pow(y-0.3,2));
+    {   double r = sqrt( pow(x-0.4,2)+pow(y,2));
         if ( r < 0.2){ return 1-r/0.2; }
         else return 0.0;
     }
@@ -128,6 +128,13 @@ double solmin(const std::vector<double>& vec) {
     }
     return smin;
 }
+
+double compute_error(double& l1error, const std::vector<Cell>& cells, const std::vector<double>& solution, const double& time)
+{    l1error = 0.0;
+    for(const auto& cell : cells)
+    l1error += (std::abs(solution[cell.id] - exactvaradv(cell.centroid, time) ) )* cell.area;
+    return l1error;
+}
 // Main function
 int main() {
     try {
@@ -138,7 +145,7 @@ int main() {
         std::cout<<"Reading mesh completed"<<std::endl;
         double dt ;
         double time = 0.0;
-        double Tf = 2.0*M_PI; // final time
+        double Tf = M_PI/2.0; // final time
         double cfl = 0.9;
         double speed = -1e-20;
         for(auto &cell : mesh.cells)
@@ -146,7 +153,7 @@ int main() {
             speed= std::max(speed, std::sqrt(vel.x*vel.x + vel.y*vel.y )* cell.perimeter/cell.area);   
         }
         dt = cfl/speed;       
-        unsigned int save_freq = 10;
+        unsigned int save_freq = 0;
         unsigned int iter = 0;
         std::vector<double> solution, res, ue;
         res.resize(mesh.cells.size(),0.0);
@@ -174,7 +181,9 @@ int main() {
                 << "Min = " << std::setw(15) << solmin(solution) << std::endl;
             }
         } 
+        double l1error = 0.0;
         std::cout<<"Total number of cells = "<<mesh.cells.size()<<std::endl;
+        std::cout<<"L1error = "<<compute_error(l1error, mesh.cells, solution, time);
         savesol(mesh, solution, time);
         gmsh::finalize();
     } catch (const std::exception &e) {
