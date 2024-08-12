@@ -2,9 +2,9 @@
 
 Grid files are written in grid.h, it creates an object of Nodes, Faces and Cells. Nodes and Cells are assigned id
 
-ranging from 0 to size of Nodes and Cells respectively.  For each Face, we can access the Left and Right cells. 
+ranging from 0 to size of Nodes/Cells.  For each Face, we can access the Left and Right cells. 
 
-If a face is a part of the boundary, then right cell is always marked as -1 as there is no right cell. 
+If a face is a part of the boundary, then right cell is always marked as -1, as there is no right cell. 
 
 ## Things to do
 
