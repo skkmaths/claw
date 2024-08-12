@@ -18,13 +18,13 @@ std::string flux_type = "upwind";
 Node velocity(const double& x, const  double& y)
 {
     Node v;
-    v.x = y;
-    v.y = -x;
+    v.x = -y;
+    v.y = x;
     return v;
 }
 // Initial condition function
 double initialCondition(const double& x,const  double& y){
-    std::string ic = "expo";
+    std::string ic = "smooth";
     if (ic == "nonsmooth" ) // solid body rotation non smooth
     {    double r = sqrt( pow(x+0.45,2)+pow(y,2));
          if ( x> 0.1 & x<0.6 & y>-0.25 & y< 0.25  ) 
@@ -39,7 +39,7 @@ double initialCondition(const double& x,const  double& y){
     }
     // Smooth initial data
     else if ( ic == "smooth") // solid body rotation
-    {   double r = sqrt( pow(x+0.3,2)+pow(y+0.3,2));
+    {   double r = sqrt( pow(x-0.3,2)+pow(y-0.3,2));
         if ( r < 0.2){ return 1-r/0.2; }
         else return 0.0;
     }
@@ -91,19 +91,24 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res, M
             res[L->id] += face.length * flux / L->area;
             res[R->id] -= face.length * flux / R->area;
         }
-        else // if facee is on one of the boundaries
-        {   assert(L->id != -1 && "Error in the boundary face");
-            std::string facebdryid = mesh.get_boundary_id(face);
-            if( facebdryid == "left" ) // inflow
-            {   
-                flux =  velnormal * exactvaradv(face.midpoint, time); 
-                res[L->id] += face.length * flux / L->area;  
-            } 
-            if ( facebdryid == "bottom") // outflow
+        else if(face.isBoundary)
+        {   std::string facebdryid = mesh.get_boundary_id(face);
+            assert(L->id !=-1 && " issue with boundary face");
+            if(facebdryid == "left")
             {
-                flux = velnormal * sol[L->id];
-                res[L->id] += face.length * flux / L->area;  
+                flux =  velnormal * sol[L->id]; 
+                res[L->id] += face.length * flux / L->area;
             }
+            if(facebdryid == "bottom")
+            {
+                flux =  velnormal * exactvaradv(face.midpoint, time); 
+                res[L->id] += face.length * flux / L->area;
+            }
+        }
+        else 
+        {
+            std::cout<<"Face type is not known !"<<std::endl;
+             abort();
         }
     }
 }
@@ -162,18 +167,13 @@ int main() {
             time +=dt;
             iter +=1;
             if (save_freq > 0){       
-               //if (iter % save_freq == 0){savesol(time, sol);}
+                if (iter % save_freq == 0){savesol(mesh, solution, time);}
                 std::cout << std::left;
                 std::cout << "iter = " << std::setw(8) << iter 
                 << "time = " << std::setw(10) << time 
                 << "Max = " << std::setw(15) << solmax(solution)
                 << "Min = " << std::setw(15) << solmin(solution) << std::endl;
             }
-            if( save_freq >0)
-               if ( iter % save_freq == 0) 
-               { 
-                   savesol(mesh, solution, time);
-               }
         }
         std::cout<<"Total number of cells = "<<mesh.cells.size()<<std::endl;
         savesol(mesh, solution, time);
