@@ -1,11 +1,11 @@
-// Define the characteristic length of the mesh
-lc = 0.01;
+// Check if `lc` is defined; if not, set a default value
+lc = lc ? lc : 0.01; 
 
 // Define the points of the geometry
-Point(1) = {-1, -1, 0, lc};
-Point(2) = {1, -1, 0, lc};
+Point(1) = {0, 0, 0, lc};
+Point(2) = {1, 0, 0, lc};
 Point(3) = {1, 1, 0, lc};
-Point(4) = {-1, 1, 0, lc};
+Point(4) = {0, 1, 0, lc};
 
 // Define the lines of the geometry
 Line(1) = {1, 2};

@@ -29,10 +29,14 @@ Make sure that boundaries defined in the .geo file and grid.h files coincide
 
 $ make clean
 
-$ gmsh -2 meshfile.geo -o mesh.msh
+$ gmsh -2 meshfile.geo -o mesh.msh 
 
 $ make
 
 $ ./run
+
+You can also use the following to specify the mesh size
+
+$gmsh -2 strumesh.geo -setnumber lc 0.01 -o mesh.msh
 
 Solutions are saved in ./sol directory. You can visualize using ViSiT or Paraview
