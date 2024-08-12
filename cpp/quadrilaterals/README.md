@@ -2,11 +2,11 @@
 
 Grid files are written in grid.h, it creates an object of Nodes, Faces and Cells. Nodes and Cells are assigned id
 
-ranging from 0 to size of Nodes and Cells respectively. For each Face, we can access the Left and Right cells. 
+ranging from 0 to size of Nodes and Cells respectively.  For each Face, we can access the Left and Right cells. 
 
 If a face is a part of the boundary, then right cell is always marked as -1 as there is no right cell. 
 
-##Things to do
+## Things to do
 
 1. Implementation of boundary condition: Periodic, Dirichlet, Inflow, Outflow etc.
 2. Need to assign the ID s for Cells and update the vtk file.
@@ -16,11 +16,13 @@ If a face is a part of the boundary, then right cell is always marked as -1 as t
 Use one of this in the make file: 
 
 INCLUDES = -I/usr/local/include 
+
 LDFLAGS = -L/usr/local/lib  -lgmsh
 
 or 
 
 INCLUDES = -I/opt/homebrew/include 
+
 LDFLAGS = -L/opt/homebrew/lib  -lgmsh
 
 Make sure that boundaries defined in the .geo file and grid.h files coincide
