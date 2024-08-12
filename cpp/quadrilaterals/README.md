@@ -39,4 +39,12 @@ You can also use the following to specify the mesh size
 
 $gmsh -2 strumesh.geo -setnumber lc 0.01 -o mesh.msh
 
+To verify the EOC do the following
+
+$ sh runcongs.sh "0.1 0.05 0.025 0.0125 0.00625"
+
+$python errorplot.py
+
+While doing the EOC, make sure that, ic = "expo", domain [-1,1]X[-1,1], set the boundary flux computation to zero, set time = 2*$\pi$
+
 Solutions are saved in ./sol directory. You can visualize using ViSiT or Paraview
