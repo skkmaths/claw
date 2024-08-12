@@ -9,11 +9,21 @@ If a face is a part of the boundary, then right cell is always marked as -1 as t
 ##Things to do
 
 1. Implementation of boundary condition: Periodic, Dirichlet, Inflow, Outflow etc.
-2. Fixing CFL and use of various numfluxes.
-3. Need to assign the ID s for Cells and update the vtk file.
-4. Initialize the solution by finding the average through quadrature
+2. Need to assign the ID s for Cells and update the vtk file.
+3. Initialize the solution by finding the average through quadrature
 
 ## How to run
+Use one of this in the make file: 
+
+INCLUDES = -I/usr/local/include 
+LDFLAGS = -L/usr/local/lib  -lgmsh
+
+or 
+
+INCLUDES = -I/opt/homebrew/include 
+LDFLAGS = -L/opt/homebrew/lib  -lgmsh
+
+Make sure that boundaries defined in the .geo file and grid.h files coincide
 
 $ make clean
 
