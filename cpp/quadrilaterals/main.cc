@@ -20,7 +20,7 @@ Node velocity(const double& x, const  double& y)
     return v;
 }
 double initialCondition(const double& x,const  double& y){
-    std::string ic = "smooth";
+    std::string ic = "expo";
     if (ic == "nonsmooth" ) // solid body rotation non smooth
     {    double r = sqrt( pow(x+0.45,2)+pow(y,2));
          if ( x> 0.1 & x<0.6 & y>-0.25 & y< 0.25  ) 
@@ -41,7 +41,7 @@ double initialCondition(const double& x,const  double& y){
     }
     else if( ic == "expo")
     {
-        return exp(-100.0*( pow(x+0.3,2) + pow(y+0.3,2) ));
+        return exp(-100.0*( pow(x-0.4,2) + pow(y,2) ));
     }
     else 
     {    std::cout<<" Unknown ic"<<std::endl;
@@ -183,7 +183,7 @@ int main() {
         } 
         double l1error = 0.0;
         std::cout<<"Total number of cells = "<<mesh.cells.size()<<std::endl;
-        std::cout<<"L1error = "<<compute_error(l1error, mesh.cells, solution, time);
+        std::cout<< mesh.cells.size()<< " "<<compute_error(l1error, mesh.cells, solution, time)<<std::endl;
         savesol(mesh, solution, time);
         gmsh::finalize();
     } catch (const std::exception &e) {
