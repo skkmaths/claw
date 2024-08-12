@@ -107,7 +107,6 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res,  
             std::cout<<"Face type is not known !"<<std::endl;
              abort();
         }
-
     }
 }
 // To find max of solution vector
@@ -138,7 +137,7 @@ int main() {
         std::cout<<"Reading mesh completed"<<std::endl;
         double dt ;
         double time = 0.0;
-        double Tf = M_PI/4; // final time
+        double Tf = 2.0*M_PI; // final time
         double cfl = 0.9;
         double speed = -1e-20;
         for(auto &cell : mesh.cells)
