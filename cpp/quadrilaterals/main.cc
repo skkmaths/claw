@@ -93,7 +93,7 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res,  
         {   std::string facebdryid = mesh.get_boundary_id(face);
             if(facebdryid == "left")
             {
-                flux =  velnormal * exactvaradv(face.midpoint, time); 
+                flux =  velnormal * sol[L->id]; 
                 res[L->id] += face.length * flux / L->area;
             }
             if(facebdryid == "bottom")
