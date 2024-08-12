@@ -91,6 +91,7 @@ void compute_residue(const std::vector<double> &sol, std::vector<double> &res,  
         }
         else if(face.isBoundary)
         {   std::string facebdryid = mesh.get_boundary_id(face);
+            assert(L->id !=-1 && " issue with boundary face");
             if(facebdryid == "left")
             {
                 flux =  velnormal * sol[L->id]; 
