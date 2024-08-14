@@ -46,6 +46,8 @@ struct Face {
     std::vector<Node*> nodes; // Pointers to the nodes that form the face
     Cell* leftCell;   // Pointer to the left triangle
     Cell* rightCell;  // Pointer to the right triangle (nullptr if boundary)
+    Cell* leftLeftCell;          // Pointer to the left-left cell
+    Cell* rightRightCell;        // Pointer to the right-right cell
     bool isBoundary;          // Flag to indicate if the face is a boundary face
     Node normalLeft;          // Normal vector for left triangle
     Node normalRight;         // Normal vector for right triangle
@@ -199,7 +201,58 @@ public:
 
     computeFaceNormals();
     computeFaceLength();
+    find_nbr_cells();
 }
+// Function to find the cell adjacent to the given cell across the face opposite to the given face
+    Cell* findAdjacentCell(Cell* cell, const Face* givenFace) {
+        if (!cell || !givenFace) {
+            std::cerr << "Error: Null cell or face pointer." << std::endl;
+            return nullptr;
+        }
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            Node* node1 = cell->nodes[i];
+            Node* node2 = cell->nodes[(i + 1) % 4];
+        
+           if ((node1 == givenFace->nodes[0] && node2 == givenFace->nodes[1]) ||
+                (node1 == givenFace->nodes[1] && node2 == givenFace->nodes[0])) {
+                Node* oppositeNode1 = cell->nodes[(i + 2) % 4];
+                Node* oppositeNode2 = cell->nodes[(i + 3) % 4];
+            
+                for (const auto& face : faces) {
+                    if (areNodesShared(face.nodes, {oppositeNode1, oppositeNode2})) {
+                        return (face.leftCell == cell) ? face.rightCell : face.leftCell;
+                    }
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+// Function to find neighboring cells for each face
+    void find_nbr_cells() {
+        for (auto& face : faces) {
+            if (face.leftCell) {
+                face.leftLeftCell = findAdjacentCell(face.leftCell, &face);
+            } else {
+                face.leftLeftCell = nullptr;
+            }
+
+            if (face.rightCell) {
+                face.rightRightCell = findAdjacentCell(face.rightCell, &face);
+            } else {
+                face.rightRightCell = nullptr;
+            }
+        }
+    }
+
+// Helper function to check if two sets of nodes are shared (unordered comparison)
+bool areNodesShared(const std::vector<Node*>& nodes1, const std::vector<Node*>& nodes2) {
+    return (std::find(nodes1.begin(), nodes1.end(), nodes2[0]) != nodes1.end() &&
+            std::find(nodes1.begin(), nodes1.end(), nodes2[1]) != nodes1.end());
+}
+
     // To compute face length 
     void computeFaceLength()
     {  for (auto& face : faces)
@@ -266,24 +319,27 @@ public:
             std::cout << "\n";
         }
     }
-    // Function to print details of all faces
-    void printFaces() const {
-        for (std::size_t i = 0; i < faces.size(); ++i) {
-            const auto& face = faces[i];
-            std::cout << "Face ID: " << i << "\n";
-            std::cout << "Face length: " << face.length << "\n";
-            std::cout << "Nodes: (" << face.nodes[0]->x << ", " << face.nodes[0]->y << ", " << face.nodes[0]->z << ") and ("
-                      << face.nodes[1]->x << ", " << face.nodes[1]->y << ", " << face.nodes[1]->z << ")\n";
-            std::cout << "Left Cell ID: " << (face.leftCell ? face.leftCell->id : -1) << "\n";
-            std::cout << "Right Triangle ID: " << (face.rightCell ? face.rightCell->id : -1) << "\n";
-            std::cout << "Left Normal: (" << face.normalLeft.x << ", " << face.normalLeft.y << ", " << face.normalLeft.z << ")\n";
-            if (!face.isBoundary) {
-                std::cout << "Right Normal: (" << face.normalRight.x << ", " << face.normalRight.y << ", " << face.normalRight.z << ")\n";
-            }
-            std::cout << "Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
-            std::cout << "\n";
+// Function to print details of all faces
+void printFaces() const {
+    for (std::size_t i = 0; i < faces.size(); ++i) {
+        const auto& face = faces[i];
+        std::cout << "Face ID: " << i << "\n";
+        std::cout << "Face length: " << face.length << "\n";
+        std::cout << "Nodes: (" << face.nodes[0]->x << ", " << face.nodes[0]->y << ", " << face.nodes[0]->z << ") and ("
+                  << face.nodes[1]->x << ", " << face.nodes[1]->y << ", " << face.nodes[1]->z << ")\n";
+        std::cout << "Left Cell ID: " << (face.leftCell ? face.leftCell->id : -1) << "\n";
+        std::cout << "Right Cell ID: " << (face.rightCell ? face.rightCell->id : -1) << "\n";
+        std::cout << "LeftLeft Cell ID: " << (face.leftLeftCell ? face.leftLeftCell->id : -1) << "\n";
+        std::cout << "RightRight Cell ID: " << (face.rightRightCell ? face.rightRightCell->id : -1) << "\n";
+        std::cout << "Left Normal: (" << face.normalLeft.x << ", " << face.normalLeft.y << ", " << face.normalLeft.z << ")\n";
+        if (!face.isBoundary) {
+            std::cout << "Right Normal: (" << face.normalRight.x << ", " << face.normalRight.y << ", " << face.normalRight.z << ")\n";
         }
+        std::cout << "Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
+        std::cout << "\n";
     }
+}
+
     void defineboundaries()
     {
         // Create boundaries with  names
