@@ -22,6 +22,8 @@ struct Cell {
     double area; // Area of the triangle
     Node centroid; // Centroid of the triangle
     double perimeter;
+    std::vector<std::size_t> faceids; // Connecting cell to faces :Pointers to the faces that form the quadrilateral
+
     // Constructor to compute area and centroid
     Cell() : area(0.0), centroid{0.0, 0.0, 0.0} {}
 
@@ -43,14 +45,15 @@ struct Cell {
 };
 // Face structure to represent a mesh face
 struct Face {
-    std::vector<Node*> nodes; // Pointers to the nodes that form the face
-    Cell* leftCell;   // Pointer to the left triangle
-    Cell* rightCell;  // Pointer to the right triangle (nullptr if boundary)
+    int id;                    // Face id counter
+    std::vector<Node*> nodes; // Connecting face to nodes: Pointers to the nodes that form the face
+    Cell* leftCell;   // Connecting face to cell: Pointer to the left triangle
+    Cell* rightCell;  // Connecting face to cell: Pointer to the right triangle (nullptr if boundary)
     Cell* leftLeftCell;          // Pointer to the left-left cell
     Cell* rightRightCell;        // Pointer to the right-right cell
     bool isBoundary;          // Flag to indicate if the face is a boundary face
-    Node normalLeft;          // Normal vector for left triangle
-    Node normalRight;         // Normal vector for right triangle
+    Node normalLeft;          // Outward Normal vector for left triangle
+    Node normalRight;         // Outward Normal vector for right triangle
     Node midpoint;
     double length;            // Length of the face
 
@@ -95,6 +98,7 @@ public:
     std::unordered_map<std::pair<std::size_t, std::size_t>, std::size_t, pair_hash> faceMap; // Mapping from node indices to face indices
     std::vector<Node*> nodeMap; // Mapping from node ID to corresponding Node pointer
     std::vector<Cell*> cellMap; // Mapping from cell ID to corresponding Cell
+    std::vector<Face*> FaceMap; // Mapping from face ID to corresponding face
     std::vector<Boundary> boundaries;  // To store the boundaries
     std::string get_boundary_id(const Face& face);
     // Function to read mesh data from GMSH
@@ -134,11 +138,12 @@ public:
                     }
                 }
             }
-
             createFaces();
             perimeterCells();
             generateNodeMap();
+            generateFaceMap();
             generateCellid();
+            generateCellMap();
             defineboundaries();
         } catch (const std::exception &e) {
             std::cerr << "Exception occurred: " << e.what() << std::endl;
@@ -169,16 +174,28 @@ public:
             cellMap[cell.id] = &cell;
         }
     }
-    // Function to create faces from triangles
+
+     // Function to generate the face ID to Face pointer map
+    void generateFaceMap() {
+        FaceMap.resize(faces.size());
+        for (auto& face : faces) {
+            FaceMap[face.id] = &face;
+        }
+    }
+    // Function to create faces from cells
     void createFaces() {
+    int faceID = 0;  // Initialize face ID counter
     for (std::size_t i = 0; i < cells.size(); ++i) {
         auto& cell = cells[i];
+        // Clear the existing face IDs for the cell
+        cell.faceids.clear();
         for (std::size_t j = 0; j < 4; ++j) {
             std::size_t nodeIndex1 = std::find(nodes.begin(), nodes.end(), *cell.nodes[j]) - nodes.begin();
             std::size_t nodeIndex2 = std::find(nodes.begin(), nodes.end(), *cell.nodes[(j + 1) % 4]) - nodes.begin();
             std::pair<std::size_t, std::size_t> faceKey = std::minmax(nodeIndex1, nodeIndex2);
 
-            if (faceMap.find(faceKey) == faceMap.end()) {
+            if (faceMap.find(faceKey) == faceMap.end())
+             {
                 // New face
                 Node* node1 = cell.nodes[j];
                 Node* node2 = cell.nodes[(j + 1) % 4];
@@ -189,70 +206,86 @@ public:
                 
                 faces.emplace_back(std::vector<Node*>{node1, node2}, &cell, nullptr);
                 faces.back().midpoint = midpoint;
+                faces.back().id = faceID++;  // Assign a unique ID to the face
                 faceMap[faceKey] = faces.size() - 1;
-            } else {
+            } else 
+            {
                 // Existing face, update the right quadrilateral
                 std::size_t faceId = faceMap[faceKey];
                 faces[faceId].rightCell = &cell;
                 faces[faceId].isBoundary = false;
             }
+            // Update the cell's faceIDs
+            std::size_t faceId = faceMap[faceKey];
+            if (std::find(cell.faceids.begin(), cell.faceids.end(), faceId) == cell.faceids.end()) {
+                cell.faceids.push_back(faceId);
+            }
         }
     }
-
     computeFaceNormals();
     computeFaceLength();
     find_nbr_cells();
 }
-// Function to find the cell adjacent to the given cell across the face opposite to the given face
-    Cell* findAdjacentCell(Cell* cell, const Face* givenFace) {
+
+// Function to find the opposite face of the given face within the given cell
+    Face* findOppositeFace(Cell* cell, const Face* givenFace) {
         if (!cell || !givenFace) {
             std::cerr << "Error: Null cell or face pointer." << std::endl;
             return nullptr;
         }
+        // Assert that the given face is a face of the given cell
+        bool isFaceOfCell = std::find(cell->faceids.begin(), cell->faceids.end(), givenFace->id) != cell->faceids.end();
+        assert(isFaceOfCell && "The given face is not a face of the given cell.");
+    // Iterate over the faces of the given cell
+        for (std::size_t i = 0; i < cell->faceids.size(); ++i) {
+            std::size_t faceId = cell->faceids[i];
+            if (faceId == givenFace->id) {
+                continue;  // Skip the given face itself
+            }
+            const Face& face = faces[faceId];
 
-        for (std::size_t i = 0; i < 4; ++i) {
-            Node* node1 = cell->nodes[i];
-            Node* node2 = cell->nodes[(i + 1) % 4];
-        
-           if ((node1 == givenFace->nodes[0] && node2 == givenFace->nodes[1]) ||
-                (node1 == givenFace->nodes[1] && node2 == givenFace->nodes[0])) {
-                Node* oppositeNode1 = cell->nodes[(i + 2) % 4];
-                Node* oppositeNode2 = cell->nodes[(i + 3) % 4];
-            
-                for (const auto& face : faces) {
-                    if (areNodesShared(face.nodes, {oppositeNode1, oppositeNode2})) {
-                        return (face.leftCell == cell) ? face.rightCell : face.leftCell;
-                    }
+           // Check if this face is opposite to the given face
+           if ((face.nodes[0]->id != givenFace->nodes[0]->id && face.nodes[0]->id != givenFace->nodes[1]->id) &&
+           (face.nodes[1]->id != givenFace->nodes[0]->id && face.nodes[1]->id != givenFace->nodes[1]->id)) 
+           {
+           return &faces[faceId];  // Return the opposite face
+           }
+        }
+    // If no opposite face is found, return nullptr
+    return nullptr;
+    }
+// Function to find and attach neighboring cells for each face
+void find_nbr_cells() {
+    for (auto& face : faces) {
+        const Face* givenface = &face;
+        // Handle leftCell
+        if (face.leftCell) {
+            Face* faceleft = findOppositeFace(face.leftCell, givenface);
+            if (faceleft) {  // Check if faceleft is valid
+                if (faceleft->leftCell == face.leftCell) {
+                    face.leftLeftCell = faceleft->rightCell;
+                } else {
+                    face.leftLeftCell = faceleft->leftCell;
                 }
-            }
-        }
-
-        return nullptr;
-    }
-
-// Function to find neighboring cells for each face
-    void find_nbr_cells() {
-        for (auto& face : faces) {
-            if (face.leftCell) {
-                face.leftLeftCell = findAdjacentCell(face.leftCell, &face);
             } else {
-                face.leftLeftCell = nullptr;
+                face.leftLeftCell = nullptr;  // Set to nullptr if no opposite face found
             }
-
-            if (face.rightCell) {
-                face.rightRightCell = findAdjacentCell(face.rightCell, &face);
-            } else {
-                face.rightRightCell = nullptr;
-            }
-        }
+        } 
+        else  face.leftLeftCell = nullptr;  // No leftCell available
+        // Handle rightCell
+        if (face.rightCell) {
+            Face* faceright = findOppositeFace(face.rightCell, givenface);
+            if (faceright) {  // Check if faceright is valid
+                if (faceright->leftCell == face.rightCell) {
+                    face.rightRightCell = faceright->rightCell;
+                } else {
+                    face.rightRightCell = faceright->leftCell;
+                }
+            } else face.rightRightCell = nullptr;  // Set to nullptr if no opposite face found
+        } 
+        else face.rightRightCell = nullptr;  // No rightCell available
     }
-
-// Helper function to check if two sets of nodes are shared (unordered comparison)
-bool areNodesShared(const std::vector<Node*>& nodes1, const std::vector<Node*>& nodes2) {
-    return (std::find(nodes1.begin(), nodes1.end(), nodes2[0]) != nodes1.end() &&
-            std::find(nodes1.begin(), nodes1.end(), nodes2[1]) != nodes1.end());
 }
-
     // To compute face length 
     void computeFaceLength()
     {  for (auto& face : faces)
@@ -308,7 +341,9 @@ bool areNodesShared(const std::vector<Node*>& nodes1, const std::vector<Node*>& 
 
     void printCells() const {
         for (const auto& cell : cells) {
-            std::cout << "Cell ID: " << cell.id << "\n";
+            std::cout << "Cell ID: " << cell.id << " cellmap "  <<cellMap[cell.id]->id <<"\n";
+            std::cout<<" Print cell face ids:" << cell.faceids[0] << " , " <<cell.faceids[1] << ","
+            <<cell.faceids[2] << ","<<cell.faceids[3] << std::endl;
             std::cout << "Cell perimeter = " << cell.perimeter << "\n";
             std::cout << "Cell area = " << cell.area << "\n";
             std::cout << "Centroid: (" << cell.centroid.x << ", " << cell.centroid.y << ", " << cell.centroid.z << ")\n";
@@ -316,6 +351,7 @@ bool areNodesShared(const std::vector<Node*>& nodes1, const std::vector<Node*>& 
             for (const auto& node : cell.nodes) {
                 std::cout << "  (" << node->x << ", " << node->y << ", " << node->z << ")\n";
             }
+        std::cout << "\n";
             std::cout << "\n";
         }
     }
@@ -323,7 +359,7 @@ bool areNodesShared(const std::vector<Node*>& nodes1, const std::vector<Node*>& 
 void printFaces() const {
     for (std::size_t i = 0; i < faces.size(); ++i) {
         const auto& face = faces[i];
-        std::cout << "Face ID: " << i << "\n";
+        std::cout << "Face ID= " << i << "\n";
         std::cout << "Face length: " << face.length << "\n";
         std::cout << "Nodes: (" << face.nodes[0]->x << ", " << face.nodes[0]->y << ", " << face.nodes[0]->z << ") and ("
                   << face.nodes[1]->x << ", " << face.nodes[1]->y << ", " << face.nodes[1]->z << ")\n";
@@ -339,7 +375,6 @@ void printFaces() const {
         std::cout << "\n";
     }
 }
-
     void defineboundaries()
     {
         // Create boundaries with  names

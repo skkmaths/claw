@@ -72,7 +72,6 @@ void exact(const std::vector<Cell> cells, std::vector<double>& ue, const double&
 void compute_residue(const std::vector<double> &sol, std::vector<double> &res,  Mesh &mesh, const double& dt, const double& time) {
     std::fill(res.begin(), res.end(), 0.0);
     for (const auto& face : mesh.faces) {
-        
         double flux;
         Node n = face.normalLeft; // Outward unit normal to leftcell
         Cell* L = face.leftCell;
@@ -145,7 +144,7 @@ int main() {
         std::cout<<"Reading mesh completed"<<std::endl;
         double dt ;
         double time = 0.0;
-        double Tf = M_PI/2.0; // final time
+        double Tf = M_PI*2.0; // final time
         double cfl = 0.9;
         double speed = -1e-20;
         for(auto &cell : mesh.cells)
@@ -153,7 +152,7 @@ int main() {
             speed= std::max(speed, std::sqrt(vel.x*vel.x + vel.y*vel.y )* cell.perimeter/cell.area);   
         }
         dt = cfl/speed;       
-        unsigned int save_freq = 0;
+        unsigned int save_freq = 10;
         unsigned int iter = 0;
         std::vector<double> solution, res, ue;
         res.resize(mesh.cells.size(),0.0);
