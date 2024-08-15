@@ -316,11 +316,11 @@ void find_nbr_cells() {
             face.normalLeft = leftNormal;
         }
     }
-    // Function to compute normal vector to a face from the centroid of a triangle
+    // Function to compute normal vector pointing outward to a cell with given centroid
  Node computeNormalToFace(const std::vector<Node*>& faceNodes, const Node& centroid) const {
         const auto& p0 = *faceNodes[0];
         const auto& p1 = *faceNodes[1];
-        // Vector from centroid to a point on the face
+        // normal to the face
         Node vnormal;
         double dx = p1.x - p0.x;
         double dy = p1.y - p0.y;
