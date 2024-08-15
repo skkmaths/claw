@@ -53,7 +53,6 @@ struct Face {
     Cell* rightRightCell;        // Pointer to the right-right cell
     bool isBoundary;          // Flag to indicate if the face is a boundary face
     Node normalLeft;          // Outward Normal vector for left triangle
-    Node normalRight;         // Outward Normal vector for right triangle
     Node midpoint;
     double length;            // Length of the face
 
@@ -315,10 +314,6 @@ void find_nbr_cells() {
         for (auto& face : faces) {
             Node leftNormal = computeNormalToFace(face.nodes, face.leftCell->centroid);
             face.normalLeft = leftNormal;
-            if (!face.isBoundary) {
-                Node rightNormal = computeNormalToFace(face.nodes, face.rightCell->centroid);
-                face.normalRight = rightNormal;
-            }
         }
     }
     // Function to compute normal vector to a face from the centroid of a triangle
@@ -366,11 +361,7 @@ void printFaces() const {
         std::cout << "Left Cell ID: " << (face.leftCell ? face.leftCell->id : -1) << "\n";
         std::cout << "Right Cell ID: " << (face.rightCell ? face.rightCell->id : -1) << "\n";
         std::cout << "LeftLeft Cell ID: " << (face.leftLeftCell ? face.leftLeftCell->id : -1) << "\n";
-        std::cout << "RightRight Cell ID: " << (face.rightRightCell ? face.rightRightCell->id : -1) << "\n";
         std::cout << "Left Normal: (" << face.normalLeft.x << ", " << face.normalLeft.y << ", " << face.normalLeft.z << ")\n";
-        if (!face.isBoundary) {
-            std::cout << "Right Normal: (" << face.normalRight.x << ", " << face.normalRight.y << ", " << face.normalRight.z << ")\n";
-        }
         std::cout << "Boundary: " << (face.isBoundary ? "Yes" : "No") << "\n";
         std::cout << "\n";
     }
