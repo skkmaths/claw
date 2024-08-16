@@ -66,8 +66,8 @@ std::string getFilename(const std::string& basename, int id) {
 vector<double> advection_velocity(const double& x, const double& y)
 {
     vector<double> v(2);
-    v[0]  = 2*y;
-    v[1]  = -2*x;
+    v[0]  = -y;
+    v[1]  = x;
     return v;
 }
 
@@ -76,11 +76,11 @@ vector<double> advection_velocity(const double& x, const double& y)
 //---------------------------------------------------------------------------------
 double TwoDProblem::xflux(const double& x, const double& y, const double& u)
 {
-	return  2*y*u;
+	return  -y*u;
 }
 double TwoDProblem::yflux(const double& x, const double& y, const double& u)
 {
-	return -2*x*u;
+	return x*u;
 }
 double  TwoDProblem::initial_data( const double& x, const double& y)
 { 
@@ -106,13 +106,18 @@ double  TwoDProblem::initial_data( const double& x, const double& y)
     }
     else if( ic == "expo")
     {
-        return 1.0 + exp(-100.0*( pow(x-0.5,2) + pow(y,2) ));
+        return  exp(-100.0*( pow(x-0.5,2) + pow(y,2) ));
     }
     else 
     {cout<<" Unknown ic"<<endl;
      abort();
     }
 
+}
+
+// Exact solution for c1 = -y, c2 = x, of ut+c1ux+c2uy = 0
+double TwoDProblem::exact(const double& x, const double& y, const double& t) {
+   return initial_data( std::cos(t) * x + std::sin(t) * y, -std::sin(t)* x + std::cos(t) * y);
 }
 // Numerical  flux in the x direction   across vertical wall
 double TwoDProblem::xnumflux(const double& x, const double& y, const double& ul,
@@ -129,7 +134,6 @@ double TwoDProblem::xnumflux(const double& x, const double& y, const double& ul,
     return  0.5*( xflux(x,y,ul) + xflux(x,y,ur) - 0.5 *fabs(v[0])*(ur-ul) );
     */
 }
-
 // numerical flux in the y direction  across  horizontal wall
 double TwoDProblem::ynumflux(const double& x, const double& y, const double& ul,
        const double& ur)
@@ -179,7 +183,6 @@ void TwoDProblem::make_grid ()
          grid.y(i,j) = grid.ymin + j* grid.dy ;
          }
       }
-      
 }
 //------------------------------------------------------------------------------
 // allocate memory and set initial condition
@@ -189,7 +192,7 @@ void TwoDProblem::initialize ()
    // set the initial data type
    // "smooth" for smooth and "nonsmooth" for discontinuous
    // "expo" for exponential distribution, smooth case
-   ic =  "nonsmooth";
+   ic =  "expo";
    sol.allocate(grid.nx+4, grid.ny+4); // with two ghost cells each side
    // initialize only real cells
    for (unsigned int i = 2; i < grid.nx + 2; ++i) 
@@ -203,15 +206,15 @@ void TwoDProblem::initialize ()
 //------------------------------------------------------------------------------
 // residual
 //------------------------------------------------------------------------------
-void TwoDProblem::compute_residual(Matrix& res)
+void TwoDProblem::compute_residual(Matrix& res, const double& time)
 { 
     // set residual to zero; this is a potential point
     res = 0.0;
     lam_x = dt / grid.dx;
     lam_y = dt / grid.dy;
-    // Loop over interior vertical faces includig the boundary
+    // Loop over interior vertical faces 
     //#pragma omp parallel for collapse(2)
-    for (unsigned int i = 1; i < grid.nx + 2; ++i){// face between (i,j) and (i+1,j)
+    for (unsigned int i = 2; i < grid.nx + 1; ++i){// face between (i,j) and (i+1,j)
        for (unsigned int j = 2; j < grid.ny + 2; ++j){
           // get the cordinate of center of cell face
           double x = grid.x(i-1,j-2);
@@ -223,10 +226,10 @@ void TwoDProblem::compute_residual(Matrix& res)
           res(i+1,j)-=  lam_x * Fn;
         }
     }
-    // Loop over horizontal faces including the boundary faces
-    //// face between (i,j) and (i,j+1)
+      // Loop over horizontal interior  faces 
+    // face between (i,j) and (i,j+1)
     //#pragma omp parallel for collapse(2)
-    for (unsigned int j = 1; j < grid.ny + 2; ++j){
+    for (unsigned int j = 2; j < grid.ny + 1; ++j){
        for (unsigned int i = 2; i < grid.nx + 2; ++i){
           double x = grid.x(i-2,j-1)+grid.dx/2.0;
           double y = grid.y(i-2,j-1);
@@ -237,13 +240,113 @@ void TwoDProblem::compute_residual(Matrix& res)
           res(i,j+1) -= lam_y * Gn;
         }
     }
+    // Boundary faces
+    // left vertical
+    for (unsigned int j = 2; j < grid.ny + 2; ++j){
+        int i = 1; // update res only in real cells
+        // get coordinates of face center
+        double x = grid.x(i-1,j-2);
+        double y = grid.y(i-1,j-2)+grid.dy/2.0;
+        if(bc.left == "outflow"){
+            double sl = sol(i+1,j); 
+            double sr = sol(i+1,j);
+            double Fn = xnumflux(x, y, sl, sr);
+            res(i+1,j)-=  lam_x * Fn;
+        }
+        else if ( bc.left == "dc"){
+            double Fn = xflux( x, y, exact (x, y, time )); // flux at exact solution
+            res(i+1,j) -=lam_x * Fn;
+        }
+        else if (bc.left == "periodic"){
+            double sl = reconstruct(sol(i-1,j),sol(i,j), sol(i+1,j));
+            double sr = reconstruct(sol(i+2,j), sol(i+1,j), sol(i,j));
+            double Fn = xnumflux(x, y, sl, sr);
+            res(i+1,j) -=  lam_x * Fn;
+        }
+        else {std::cout<<"Unkown bc at left face: "<<std::endl; abort();}   
+    }
+    // right vertical face
+    for (unsigned int j = 2; j < grid.ny + 2; ++j){
+        int i = grid.nx+1;
+        double x = grid.x(i-1,j-2);
+        double y = grid.y(i-1,j-2)+grid.dy/2.0;
+        if(bc.right == "outflow"){
+            double sl = sol(i,j); 
+            double sr = sol(i,j); 
+            double Fn = xnumflux(x, y, sl, sr);
+            res(i,j)+=  lam_x * Fn;
+        }
+        else if ( bc.right == "dc"){
+            double Fn = xflux(x, y, exact (x, y , time ));
+            res(i,j) +=lam_x * Fn;
+        }
+        else if (bc.right == "periodic"){
+            double sl = reconstruct(sol(i-1,j),sol(i,j), sol(i+1,j));
+            double sr = reconstruct(sol(i+2,j), sol(i+1,j), sol(i,j));
+            double Fn = xnumflux(x, y, sl, sr);
+            res(i,j) +=  lam_x * Fn;
+        }
+        else {std::cout<<"Unkown bc at left face: "<<std::endl; abort();}
+    }
+    // Bottom horizontal faces
+    for (unsigned int i = 2; i < grid.nx + 2; ++i){
+        int j = 1;
+        double x = grid.x(i-2,j-1)+grid.dx/2.0;
+        double y = grid.y(i-2,j-1);
+        if ( bc.bottom == "outflow"){
+            double sl = sol(i,j+1);  
+            double sr = sol(i,j+1); 
+            double Gn = ynumflux(x, y, sl,sr);
+            res(i,j+1) -= lam_y * Gn;
+        }
+        else if( bc.bottom == "dc"){
+            double Gn = yflux(x, y, exact(x, y, time ) );
+            res(i,j+1) -= lam_y*Gn;
+        }
+        else if ( bc.bottom == "periodic")
+        {
+            double sl = reconstruct(sol(i,j-1), sol(i,j), sol(i,j+1));
+            double sr = reconstruct(sol(i,j+2), sol(i,j+1), sol(i,j));
+            double Gn = ynumflux(x, y, sl,sr);
+            res(i,j+1) -= lam_y * Gn;
+        }
+        else {
+            std::cout<<"Unkown bc at left face: "<<std::endl; abort();
+        }
+    }
+    // top horizontal  face
+    for (unsigned int i = 2; i < grid.nx + 2; ++i){
+        int j = grid.ny+1;
+        double x = grid.x(i-2,j-1)+grid.dx/2.0;
+        double y = grid.y(i-2,j-1);
+        if ( bc.top == "outflow"){
+            double sl = sol(i,j); 
+            double sr = sol(i,j); 
+            double Gn = ynumflux(x, y, sl,sr);
+            res(i,j) += lam_y * Gn;
+        }
+        else if( bc.top == "dc"){
+            double Gn = yflux(x, y, exact(x, y, time ) );
+            res(i,j) += lam_y * Gn;
+        }
+        else if ( bc.top == "periodic")
+        {
+            double sl = reconstruct(sol(i,j-1), sol(i,j), sol(i,j+1));
+            double sr = reconstruct(sol(i,j+2), sol(i,j+1), sol(i,j));
+            double Gn = ynumflux(x, y, sl,sr);
+            res(i,j) += lam_y * Gn;
+        }
+        else {
+            std::cout<<"Unkown bc at left face: "<<std::endl; abort();
+        }
+    }
 }
 //------------------------------------------------------------------------------
 // Update solution in ghost cells
 // Change this according to your test case
 //------------------------------------------------------------------------------
 void TwoDProblem::updateGhostCells ()
-{
+{ 
     // left vertical 
     for (unsigned int j = 0; j <= grid.ny + 3; ++j) {
         sol(0,j) = sol(grid.nx, j );
@@ -264,6 +367,7 @@ void TwoDProblem::updateGhostCells ()
         sol(i, grid.ny+2) = sol( i, 2);
         sol(i, grid.ny+3) = sol(i,3);
     }
+    
 }
 //------------------------------------------------------------------
 // Save solution to file in the .dat format for gnuplot purpose.
@@ -292,9 +396,11 @@ void TwoDProblem::savesol(double t, Matrix& sol)
     file << "TITLE = \"Linear advection equation\"" << std::endl;
     file << "VARIABLES = \"x\", \"y\", \"sol\"" << std::endl;
     file << "ZONE STRANDID=1, SOLUTIONTIME=" << t << ", I=" << grid.nx << ", J=" << grid.ny << ", DATAPACKING=POINT" << std::endl;
-    for(unsigned int i = 0; i < grid.nx ; ++i) {
-        for(unsigned int j = 0; j < grid.ny ; ++j) {
-            file << std::setprecision(8) << std::fixed << grid.xc(i,j) << ", " << grid.yc(i,j) << ", " << sol(i+2,j+2) << std::endl;
+    for(unsigned int j = 0; j < grid.nx ; ++j) {
+        for(unsigned int i = 0; i < grid.ny ; ++i) {
+            file << std::setprecision(8) << std::fixed << grid.xc(i,j) << ", "
+             << grid.yc(i,j) << ", " 
+             << sol(i+2,j+2) << std::endl;
         }
     }
     file.close();
@@ -349,20 +455,20 @@ void TwoDProblem::compute_error(double& l1error)
     l1error*=(grid.dx*grid.dy);
 }
 // ssprk2 time stepping
-void TwoDProblem::apply_ssprk2(){
+void TwoDProblem::apply_ssprk2(const double& time){
      sol_old = sol;
      updateGhostCells();
-     compute_residual(res);
+     compute_residual(res,time);
      sol = sol- res;
      updateGhostCells();
-     compute_residual(res);
+     compute_residual(res, time);
      sol = sol - res;
      sol = (sol_old + sol) * 0.5;  
 }
 // Forward euler time stepping
-void TwoDProblem::apply_euler(){
+void TwoDProblem::apply_euler(const double& time){
      updateGhostCells();
-     compute_residual(res);
+     compute_residual(res, time);
      sol = sol- res;
     }
 //------------------------------------------------------------------------------
@@ -380,8 +486,8 @@ void TwoDProblem::solve(){
     {
      if (time + dt >Tf){ dt = Tf-time;}
      //Update time solution
-     if (scheme =="so") apply_ssprk2(); // update solution by rk time stepping 
-     else apply_euler(); // update solution by fo scheme
+     if (scheme =="so") apply_ssprk2(time); // update solution by rk time stepping 
+     else apply_euler(time); // update solution by fo scheme
      time +=dt;
      iter +=1;
      if (save_freq > 0){       
@@ -402,6 +508,11 @@ void TwoDProblem::solve(){
 void TwoDProblem::run ()
 {
   make_grid();
+  // set boundary conditions
+  bc.left = "periodic";
+  bc.right = "periodic";
+  bc.bottom = "periodic";
+  bc.top = "periodic" ;
   initialize();
   auto start_wall = std::chrono::system_clock::now();
   solve();
