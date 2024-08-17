@@ -16,7 +16,7 @@ using namespace std;
 int main(int argc, char* argv[]) {
     int nx = 100; // Default value for nx
     int ny = 100; // Default value for ny
-    double Tf = M_PI; // Default value for final time
+    double Tf = 2.0 * M_PI; // Default value for final time
     double cfl = 0.95; // Default value of cfl 
     unsigned int save_freq = 10; // Default save frequency
     string scheme = "fo"; //Default:first order in time and space scheme

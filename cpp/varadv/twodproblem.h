@@ -6,14 +6,7 @@
 #include <chrono>
 using namespace std;
 
-class BoundaryConditions {
-public:
-    // Constructor
-    BoundaryConditions(const std::string& left, const std::string& right, 
-                       const std::string& bottom, const std::string& top) 
-        : left(left), right(right), bottom(bottom), top(top) {}
-   BoundaryConditions() 
-        : left(""), right(""), bottom(""), top("") {}  // Initializes all strings to empty
+struct BoundaryConditions {
 std::string left;
 std::string right;
 std::string bottom;

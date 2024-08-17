@@ -37,7 +37,6 @@ double minmod (const double& ul, const double& u0, const double& ur)
       result = 0.0;
    return result;
 }
-
 double TwoDProblem::reconstruct(const double& sol_ll,const double& sol_l,const double& sol_r)
 {   
     if( scheme == "so"){
@@ -76,15 +75,14 @@ vector<double> advection_velocity(const double& x, const double& y)
 //---------------------------------------------------------------------------------
 double TwoDProblem::xflux(const double& x, const double& y, const double& u)
 {
-	return  -y*u;
+	return  advection_velocity(x,y)[0]*u;
 }
 double TwoDProblem::yflux(const double& x, const double& y, const double& u)
 {
-	return x*u;
+	return advection_velocity(x,y)[1]*u;
 }
 double  TwoDProblem::initial_data( const double& x, const double& y)
-{ 
-    
+{
     // Discontinuous  initial data
     if (ic == "nonsmooth" ) // solid body rotation
     {double r = sqrt( pow(x+0.45,2)+pow(y,2));
@@ -103,6 +101,9 @@ double  TwoDProblem::initial_data( const double& x, const double& y)
     {double r = sqrt( pow(x+0.45,2)+pow(y,2));
      if ( r < 0.35){ return 1-r/0.35; }
      else return 0.0;
+    }
+    else if (ic == "sin"){
+       return sin(2.0 * M_PI * x)* sin(2.0 * M_PI * y);
     }
     else if( ic == "expo")
     {
@@ -155,10 +156,6 @@ double TwoDProblem::ynumflux(const double& x, const double& y, const double& ul,
 //------------------------------------------------------------------------------
 void TwoDProblem::make_grid ()
 {
-   grid.xmax = 1.0;
-   grid.xmin = -1.0;
-   grid.ymax = 1.0;
-   grid.ymin = -1.0;
    grid.nx = nx;
    grid.ny = ny;
    grid.dx = (grid.xmax-grid.xmin)/grid.nx;
@@ -167,32 +164,28 @@ void TwoDProblem::make_grid ()
    cout<<"Making grid for 2Dclw problem ..." << endl;
    // write cell centers starting from left bottom corner
    for (unsigned int i = 0; i < grid.nx ; ++i) 
-      {
-      for (unsigned int j = 0; j < grid.ny ; ++j) 
-         {
-         grid.xc(i,j) = grid.xmin + (i + 0.5 ) * grid.dx;
-         grid.yc(i,j) = grid.ymin + (j + 0.5) * grid.dy ;
+    {
+        for (unsigned int j = 0; j < grid.ny ; ++j) 
+        {
+            grid.xc(i,j) = grid.xmin + (i + 0.5 ) * grid.dx;
+            grid.yc(i,j) = grid.ymin + (j + 0.5) * grid.dy ;
         }
-      }
+    }
    // write cell vertices
    for (unsigned int i = 0; i < grid.nx +1 ; ++i) 
-      {
-      for (unsigned int j = 0; j < grid.ny+1 ; ++j) 
-         {
-         grid.x(i,j) = grid.xmin + i * grid.dx;
-         grid.y(i,j) = grid.ymin + j* grid.dy ;
-         }
-      }
+    {
+        for (unsigned int j = 0; j < grid.ny+1 ; ++j) 
+        {
+            grid.x(i,j) = grid.xmin + i * grid.dx;
+            grid.y(i,j) = grid.ymin + j* grid.dy ;
+        }
+    }
 }
 //------------------------------------------------------------------------------
 // allocate memory and set initial condition
 //------------------------------------------------------------------------------
 void TwoDProblem::initialize ()
-{    
-   // set the initial data type
-   // "smooth" for smooth and "nonsmooth" for discontinuous
-   // "expo" for exponential distribution, smooth case
-   ic =  "expo";
+{ 
    sol.allocate(grid.nx+4, grid.ny+4); // with two ghost cells each side
    // initialize only real cells
    for (unsigned int i = 2; i < grid.nx + 2; ++i) 
@@ -367,7 +360,6 @@ void TwoDProblem::updateGhostCells ()
         sol(i, grid.ny+2) = sol( i, 2);
         sol(i, grid.ny+3) = sol(i,3);
     }
-    
 }
 //------------------------------------------------------------------
 // Save solution to file in the .dat format for gnuplot purpose.
@@ -396,8 +388,8 @@ void TwoDProblem::savesol(double t, Matrix& sol)
     file << "TITLE = \"Linear advection equation\"" << std::endl;
     file << "VARIABLES = \"x\", \"y\", \"sol\"" << std::endl;
     file << "ZONE STRANDID=1, SOLUTIONTIME=" << t << ", I=" << grid.nx << ", J=" << grid.ny << ", DATAPACKING=POINT" << std::endl;
-    for(unsigned int j = 0; j < grid.nx ; ++j) {
-        for(unsigned int i = 0; i < grid.ny ; ++i) {
+    for(unsigned int j = 0; j < grid.ny ; ++j) {
+        for(unsigned int i = 0; i < grid.nx ; ++i) {
             file << std::setprecision(8) << std::fixed << grid.xc(i,j) << ", "
              << grid.yc(i,j) << ", " 
              << sol(i+2,j+2) << std::endl;
@@ -506,13 +498,20 @@ void TwoDProblem::solve(){
 // solve the whole problem
 //------------------------------------------------------------------------------
 void TwoDProblem::run ()
-{
-  make_grid();
+{ 
+  // set the domain vertices
+  grid.xmax = 1.0;
+  grid.xmin = -1.0;
+  grid.ymax = 1.0;
+  grid.ymin = -1.0;
   // set boundary conditions
   bc.left = "periodic";
   bc.right = "periodic";
   bc.bottom = "periodic";
   bc.top = "periodic" ;
+  // choose initial condition from "expo, sin, smooth, nonsmooth"
+  ic =  "expo"; 
+  make_grid();
   initialize();
   auto start_wall = std::chrono::system_clock::now();
   solve();
