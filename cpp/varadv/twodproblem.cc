@@ -107,7 +107,7 @@ double  TwoDProblem::initial_data( const double& x, const double& y)
     }
     else if( ic == "expo")
     {
-        return  exp(-100.0*( pow(x-0.5,2) + pow(y,2) ));
+        return  exp(-200.0*( pow(x-0.3,2) + pow(y,2) ));
     }
     else 
     {cout<<" Unknown ic"<<endl;
@@ -504,7 +504,7 @@ void TwoDProblem::run ()
   grid.xmin = -1.0;
   grid.ymax = 1.0;
   grid.ymin = -1.0;
-  // set boundary conditions
+  // set boundary conditions: choose from "periodic, dc, outflow"
   bc.left = "periodic";
   bc.right = "periodic";
   bc.bottom = "periodic";
