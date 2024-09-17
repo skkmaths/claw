@@ -12,8 +12,9 @@ from pde import *
 # Get arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('-nc', type=int, help='Number of cells', default=100)
-parser.add_argument('-cfl', type=float, help='CFL number', default=0.9)
+parser.add_argument('-cfl', type=float, help='CFL number', default=0.5)
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
+parser.add_argument('-eps', type=float, help='Epsilon', default=0.01)
 parser.add_argument('-ic',
                     choices=('smooth','shock','dflu1','dflu2','rare1','composite','hat','buckley1','rare','expo','slope'),
                     help='Initial condition', default='smooth')
@@ -27,22 +28,14 @@ parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
 parser.add_argument('-time_scheme', default = 'euler',
                     help = 'Chosen by degree if unspecified',
                     choices = ('euler','ssprk22'))
-parser.add_argument('-bc', default = 'periodic',
+parser.add_argument('-bc', default = 'dirichlet',
                     help = 'Chose the boundary condition',
                     choices = ('periodic','dirichlet'))
 parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
                     default='no')
 parser.add_argument('-alpha', type=float, help='Slope parameter', default=0.5)
 args = parser.parse_args()
-# Select PDE
 
-
-# Select Numerical Flux
-if args.numflux not in numfluxes:
-    print("Incorrect numerical flux chosen, choices are ",numfluxes)
-    exit()
-if args.numflux == 'godunov':
-    numflux = godunov
 
 # constants
 Tf    = args.Tf
@@ -51,7 +44,7 @@ nc    = args.nc
 alpha = args.alpha  # parameter in the slopes
 beta = 1.0 # parameter in minmod
 time_scheme = args.time_scheme
-
+set_epsilon(args.eps)
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
 Mdx2 = args.tvbM*h**2.0
@@ -78,16 +71,36 @@ def minmod(a,b,c):
         return 0.0
 t = 0.0 # time
 # plot initial condition
-if args.plot_freq >0:
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    line1,line2 = ax.plot(x, u[0,2:nc+2], 'ro',x, u[0,2:nc+2], 'b')
-    #line1, = ax.plot(x, u, 'o')
-    ax.set_xlabel('x'); ax.set_ylabel('u')
-    plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
-    plt.legend(('Numerical','Exact'))
-    #plt.ylim(0.3,0.7)
-    plt.grid(True); plt.draw(); plt.pause(0.1)
+if args.plot_freq > 0:
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))  # Create 1 row, 3 columns of subplots
+    
+    # Plot on the first subplot (axes[0])
+    line1, = axes[0].plot(x, u[0, 2:nc+2]/u[2, 2:nc+2], '-')
+    axes[0].set_xlabel('x')
+    axes[0].set_ylabel('density')
+    #axes[0].set_title('Plot 1: nc='+str(nc)+', CFL='+str(cfl)+', time='+str(np.round(t, 3)))
+    axes[0].legend(('Numerical'))
+    axes[0].grid(True)
+    
+    # Plot on the second subplot (axes[1])
+    line2, = axes[1].plot(x, u[1, 2:nc+2]/u[0, 2:nc+2], '-')  # Example plot for second data set
+    axes[1].set_xlabel('x')
+    axes[1].set_ylabel('velocity')
+    #axes[1].set_title('Plot 2: nc='+str(nc)+', CFL='+str(cfl)+', time='+str(np.round(t, 3)))
+    axes[1].legend(('Numerical'))
+    axes[1].grid(True)
+
+    # Plot on the third subplot (axes[2])
+    line3, = axes[2].plot(x, u[2, 2:nc+2], '-')  # Example plot for third data set
+    axes[2].set_xlabel('x')
+    axes[2].set_ylabel('height')
+    #axes[2].set_title('Plot 3: nc='+str(nc)+', CFL='+str(cfl)+', time='+str(np.round(t, 3) ) )
+    axes[2].legend('Numerical')
+    axes[2].grid(True)
+    axes[2].set_ylim([np.min(u[2,2:nc+2])-0.1, np.max(u[2,2:nc+2])+0.1])
+    fig.suptitle('nc='+str(nc)+', CFL='+str(cfl)+', time='+str(np.round(t, 3)))
+    plt.tight_layout()  # Adjust subplots to fit in the figure area
+    plt.pause(0.1)
     wait = input("Press enter to continue ")
 
 #Error computation
@@ -120,10 +133,10 @@ def update_ghost(u1):
         u1[:,nc+2] = u1[:,2]
     elif args.bc == 'dirichlet':
         # left ghost cell
-        u1[:,0] = uinit(x[0])
-        u1[:,1] = uinit(x[0])
-        u1[:,nc+3] = uinit(x[nc-1])
-        u1[:,nc+2] = uinit(x[nc-1])
+        u1[:,0] = u1[:,2]
+        u1[:,1] = u1[:,2]
+        u1[:,nc+3] = u1[:,nc+1]
+        u1[:,nc+2] = u1[:,nc+1]
     else:
         print('unknown boundary condition')
         exit()
@@ -158,6 +171,11 @@ def compute_residual(ts, lam, u, res):
         fn = numflux(xf, ul, ur, h)
         res[:,i] += fn
         res[:,i+1] -= fn
+    for i in range (2, nc+2):
+        k1 = flux_f2( u[0,i], max(u[1,i], 0.0), u[2,i])
+        k2 = flux_f2( u[0,i+1], max(u[1,i+1], 0.0), u[2,i+1])
+        s = g*u[0,i]* (B(x[i-2]) - B(x[i-3]) )/h if k1 >= k2 else g*u[0,i+1]* (B(x[i-1]) - B(x[i-2]) )/h
+        res[1,i] += h * s
     return res
 time_schemes = {'euler': apply_euler, 'ssprk22' : apply_ssprk22 }
 t, it = 0.0, 0
@@ -172,15 +190,16 @@ while t < Tf:
     u = time_schemes[time_scheme](t, lam, u_old, u, res)  # update solution
     t += dt; it += 1 # update time step
     if args.plot_freq >0:
-        ue = uexact(x, t , uinit)
-        line1.set_ydata(u[0,2:nc+2])
-        line2.set_ydata(ue)
-        plt.title('nc='+str(nc)+', CFL='+str(cfl)+', time ='+str(np.round(t,3)))
+        line1.set_ydata(u[0,2:nc+2]/u[2,2:nc+2])
+        line2.set_ydata(u[1,2:nc+2]/u[0,2:nc+2])
+        line3.set_ydata(u[2,2:nc+2])
+        fig.suptitle('nc='+str(nc)+', CFL='+str(cfl)+', time='+str(np.round(t, 3)))
+        axes[2].set_ylim([np.min(u[2,2:nc+2]-0.1), np.max(u[2,2:nc+2])+0.1])
         plt.draw(); plt.pause(0.1)
 
 # save final time solution to a file
 fname = 'sol.txt'
-np.savetxt(fname, np.column_stack([x, u[0,2:nc+2]], u[1,2:nc+2]], u[2,2:nc+2]]))
+np.savetxt(fname, np.column_stack([x, u[0,2:nc+2], u[1,2:nc+2], u[2,2:nc+2]]))
 print('Saved file ', fname)
 
 if args.compute_error == 'yes':
