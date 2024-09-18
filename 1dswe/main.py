@@ -13,16 +13,10 @@ from pde import *
 parser = argparse.ArgumentParser()
 parser.add_argument('-nc', type=int, help='Number of cells', default=100)
 parser.add_argument('-cfl', type=float, help='CFL number', default=0.5)
-parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-eps', type=float, help='Epsilon', default=0.01)
-parser.add_argument('-ic',
-                    choices=('smooth','shock','dflu1','dflu2','rare1','composite','hat','buckley1','rare','expo','slope'),
-                    help='Initial condition', default='smooth')
+
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 
-parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','dflu','godunov','upwind','nt', 'lxf'), default='rusanov')
-parser.add_argument('-compute_error', choices=('no','yes'),
-                    help='Compute error norm', default='no')
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
                     default=1)
 parser.add_argument('-time_scheme', default = 'euler',
@@ -31,9 +25,6 @@ parser.add_argument('-time_scheme', default = 'euler',
 parser.add_argument('-bc', default = 'dirichlet',
                     help = 'Chose the boundary condition',
                     choices = ('periodic','dirichlet'))
-parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
-                    default='no')
-parser.add_argument('-alpha', type=float, help='Slope parameter', default=0.5)
 args = parser.parse_args()
 
 
@@ -41,18 +32,16 @@ args = parser.parse_args()
 Tf    = args.Tf
 cfl   = args.cfl
 nc    = args.nc
-alpha = args.alpha  # parameter in the slopes
-beta = 1.0 # parameter in minmod
 time_scheme = args.time_scheme
 set_epsilon(args.eps)
 x   = np.zeros(nc)
 h = (xmax - xmin)/nc
-Mdx2 = args.tvbM*h**2.0
-  
+
+# create real cells, 
 for i in range(nc):
     x[i] = xmin + i*h + 0.5*h
 
-u = np.zeros((3,nc+4))    # with 4 ghost cells, 2 each sides 
+u = np.zeros((3,nc+4))    # with total 4 ghost cells, 2 each sides 
 # Conserved varialbe
 # u[0,:] = rho * height , u[1, :] = rho * height * velocity, u[2,:] = height
 # initialize solution variable
@@ -61,14 +50,6 @@ u[1,2:nc+2] = density(x) * height (x) * velocity(x)
 u[2,2:nc+2] = height(x)
 res = np.zeros((3,nc+4))
 
-def minmod(a,b,c):
-    sa = np.sign(a)
-    sb = np.sign(b)
-    sc = np.sign(c)
-    if sa==sb and sb==sc:
-        return sa * np.abs([a,b,c]).min()
-    else:
-        return 0.0
 t = 0.0 # time
 # plot initial condition
 if args.plot_freq > 0:
@@ -103,27 +84,6 @@ if args.plot_freq > 0:
     plt.pause(0.1)
     wait = input("Press enter to continue ")
 
-#Error computation
-def compute_error(u1,t):
-    error_norm1 = 0.0; error_norm2 = 0.0
-    ue = uexact(x, t , uinit)
-    dom_len = xmax - xmin
-    error_norm1 = h*np.sum(np.abs(u1-ue))
-    error_norm2 = np.sqrt(h*np.sum((u1-ue)**2))
-    return error_norm1, error_norm2
-
-def reconstruct(ujm1, uj, ujp1):
-    if args.limit == 'no':
-        return uj
-    elif args.limit == 'mmod':
-        dj = 2.0* alpha * minmod( beta*(uj-ujm1), \
-                                0.5*(ujp1-ujm1), \
-                                beta*(ujp1-uj))
-        ul = uj + 0.5 * dj
-        return ul
-    else:
-        print('limit type not defined')
-        exit()
 def update_ghost(u1):
     if args.bc == 'periodic':
         # left ghost cell
@@ -150,34 +110,23 @@ def apply_euler(t,lam, u_old, u, ures ):
     u = u - lam * ures
     return u
 
-def apply_ssprk22(t,lam, u_old, u, ures ):
-    #first stage
-    ts  = t
-    update_ghost(u)
-    ures = compute_residual(ts, lam, u, ures)
-    u = u - lam * ures
-    #second stage
-    ts = t + dt
-    update_ghost(u)
-    ures = compute_residual(ts, lam, u, ures)
-    u = 0.5 * u_old + 0.5 *(u - lam * ures)
-    return u
-
 def compute_residual(ts, lam, u, res):
     res[:,:] = 0.0    
+    # loop over the faces and add to res
     for i in range(1,nc+2): # face between i and i+1
         xf = xmin+(i-1)*h # location of the face
         ul, ur  = u[:,i], u[:,i+1] 
         fn = numflux(xf, ul, ur, h)
         res[:,i] += fn
         res[:,i+1] -= fn
+    # add source terms to res
     for i in range (2, nc+2):
         k1 = flux_f2( u[0,i], max(u[1,i], 0.0), u[2,i])
         k2 = flux_f2( u[0,i+1], max(u[1,i+1], 0.0), u[2,i+1])
         s = g*u[0,i]* (B(x[i-2]) - B(x[i-3]) )/h if k1 >= k2 else g*u[0,i+1]* (B(x[i-1]) - B(x[i-2]) )/h
         res[1,i] += h * s
     return res
-time_schemes = {'euler': apply_euler, 'ssprk22' : apply_ssprk22 }
+time_schemes = {'euler': apply_euler}
 t, it = 0.0, 0
 while t < Tf:
     
@@ -202,10 +151,6 @@ fname = 'sol.txt'
 np.savetxt(fname, np.column_stack([x, u[0,2:nc+2]/u[2,2:nc+2], u[1,2:nc+2]/u[0,2:nc+2], u[2,2:nc+2]]))
 print('Saved file ', fname)
 
-if args.compute_error == 'yes':
-    er1, er2 = compute_error(u[0,2:nc+2],t)
-    print('h, L1 error norm, L2 error norm = ')
-    print(h, er1, er2)
 if args.plot_freq >0:
     plt.show()
 
