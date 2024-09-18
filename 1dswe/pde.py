@@ -16,6 +16,7 @@ def P(v, h):
 
 def flux_f2(v, w, h):
     return (w**2.0/v) + P(v, h) 
+    
 def B(x):
     return 1.0
 
@@ -37,13 +38,5 @@ def numflux(xf, ul, ur, h):
     flux[2]  = max(velocity_l,0) * height_l  if k1 >= k2 else  min(velocity_r,0)*  height_r 
     
     return flux
-def uexact(x, t, u0):
 
-    ue = np.zeros(np.size(x))
-    def imp_eqn(u):
-        return u - u0(xx-t*u)
-    for i,xx in enumerate(x):
-        seed_value = u0(xx)
-        ue[i] = optimize.fsolve(imp_eqn, seed_value)
-    return ue
 
