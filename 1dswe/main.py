@@ -199,7 +199,7 @@ while t < Tf:
 
 # save final time solution to a file
 fname = 'sol.txt'
-np.savetxt(fname, np.column_stack([x, u[0,2:nc+2], u[1,2:nc+2], u[2,2:nc+2]]))
+np.savetxt(fname, np.column_stack([x, u[0,2:nc+2]/u[2,2:nc+2], u[1,2:nc+2]/u[0,2:nc+2], u[2,2:nc+2]]))
 print('Saved file ', fname)
 
 if args.compute_error == 'yes':
