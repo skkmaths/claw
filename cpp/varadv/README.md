@@ -29,3 +29,6 @@ This project implements two dimensional finite volume scheme for linear advectio
 - Solutions are saved in ./sol directory
 - You can  plot the solution using ViSiT or Paraview
 
+## Todo
+- Here, update_ghostcell() function implements only periodic boundary condition. For the second order scheme, while computing interior fluxes, this ghost cell values are used. So it is required to update this function for proper boundary condition. However, it works for periodic boundary conditions.
+
