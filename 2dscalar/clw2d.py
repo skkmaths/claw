@@ -62,7 +62,7 @@ else:
 
 # Select cfl
 cfl = args.cfl
-beta = 2.0 # parameter in minmod
+beta = 1.0 # parameter in minmod
 nx = args.ncellx       # number of cells in the x-direction
 ny = args.ncelly       # number of cells in the y-direction
 global fileid
