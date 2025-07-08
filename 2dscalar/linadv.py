@@ -12,10 +12,10 @@ def advection_velocity(x,y):
 
 # Upwind flux
 def xnumflux(x, y, Fl, Fr, ul, ur):
-    return 0.5*(Fl + Fr) - 0.5*(ur - ul)
+    return ul
 
 def ynumflux(x, y, Fl, Fr, ul, ur):
-    return 0.5*(Fl + Fr) - 0.5*(ur - ul)
+    return ul
 
 # Return (1,1) at all points (x,y)
 def local_speed(x, y, u):

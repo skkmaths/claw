@@ -19,14 +19,9 @@ parser.add_argument('-scheme', choices=('lw','rk2','fo' ), help='lw',
                     default='fo')
 parser.add_argument('-corr', choices=('radau', 'g2'), help='Correction function',
                     default='radau')
-parser.add_argument('-points', choices=('gl', 'gll'), help='Solution points',
-                    default='gl')
 parser.add_argument('-ncellx', type=int, help='Number of x cells', default=50)
 parser.add_argument('-ncelly', type=int, help='Number of y cells', default=50)
-parser.add_argument('-degree', type=int, help='Polynomial degree', default=1)
 parser.add_argument('-cfl', type=float, help='CFL number', default=1.0)
-parser.add_argument('-diss', type=int, choices=(1, 2), help='Dissipation type',
-                    default=1)
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
                     default=1)
@@ -200,7 +195,7 @@ def update_plot(fig, t, u1):
     ax2 = fig.add_subplot(121)
     cp = ax2.contour(xgrid, ygrid, u1, levels=16)
     ax2.set_title(str(nx)+'X'+str(ny)+' cells, CFL = '+str(round(cfl, 3)) +
-              ', Diss = '+str(args.diss)+', t = '+str(round(t, 3)))
+              ', t = '+str(round(t, 3)))
     ax2.set_xlabel('x')
     ax2.set_ylabel('y')
     plt.colorbar(cp)
@@ -332,7 +327,8 @@ if (args.pde == 'linear' or args.pde == 'varadv'):
 it, t = 0, 0.0
 Tf = args.Tf
 #save initial data
-savesol(t, v)
+if args.save_freq > 0:
+    savesol(t, v)
 while t < Tf:
     if (args.pde == 'burger'):
         dt = cfl/(max_speed(v)/dx +max_speed(v)/dy)
@@ -369,9 +365,10 @@ if args.compute_error == 'yes':
     print('dx,dy,l1,l2,linf error =')# %10.4e %10.4e %10.4e %10.4e %10.4e' % 
     print(dx,dy,l1_err,l2_err,li_err)
 # print final data
-savesol(t,v)
-print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
-print('solution saved to .plt files')
+if args.save_freq > 0:
+    savesol(t,v)
+    print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
+    print('solution saved to .plt files')
 
 
 if args.plot_freq > 0: 
