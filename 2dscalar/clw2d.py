@@ -336,7 +336,7 @@ while t < Tf:
         dt = Tf - t
     lamx, lamy = dt/dx,  dt/dy
     # Loop over real cells (no ghost cell) and compute cell integral
-    v_old = v
+    v_old = v.copy()
     if args.scheme == 'lw':
         update_ghost(v)
         vres = compute_residual_lw(t, dt, lamx, lamy, v, vres)
