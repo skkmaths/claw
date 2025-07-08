@@ -64,7 +64,7 @@ else:
 cfl = args.cfl
 beta = 1.0 # parameter in minmod
 if args.scheme == 'rk2':
-    args.limit == 'mmod'
+    args.limit = 'mmod'
 nx = args.ncellx       # number of cells in the x-direction
 ny = args.ncelly       # number of cells in the y-direction
 global fileid
