@@ -27,7 +27,7 @@ python clw2d.py -scheme lw -Tf 1.0 -pde linear -ic sin2pi
 sh runconvergence "20 40 80 160 320 640"
 python plotrate.py
 
-For the linear advection use cfl =1 for fo scheme and cfl =0.5 for rk2 scheme while computing EOC
+For the linear advection use cfl = 1 for fo scheme and cfl =0.5 for rk2 scheme while computing EOC
 ```
 
 Solutions are saved to .plt files: use Visit to plot
