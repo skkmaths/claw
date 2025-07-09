@@ -15,7 +15,7 @@ python clw2d.py -Tf 1.0 -cfl 0.9 -save_freq 1 -plot_freq 0
 For others
 
 ```
-python clw2d.py -Tf 1.0  -pde linear -scheme rk2 -limit mmod
+python clw2d.py -Tf 1.0  -pde linear -scheme rk2 
 ```
 
 ```
@@ -32,11 +32,11 @@ For the linear advection: set cfl = 1 (for fo scheme) and cfl =0.5 (for rk2 sche
 
 Solutions are saved to .plt files: use Visit to plot
 
-Instruction to install visit in centos-lynux machine
+Instructions to install visit in centos-lynux machine
 
 1. Download the tar.gz file from https://wci.llnl.gov/simulation/computer-codes/visit/executables
 
-2. Downlad install script https://github.com/visit-dav/visit/releases/download/v3.1.4/visit-install3_1_4
+2. Download install script https://github.com/visit-dav/visit/releases/download/v3.1.4/visit-install3_1_4
 
 3. Rename the file to visit-install
 
