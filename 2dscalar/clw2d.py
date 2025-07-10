@@ -15,7 +15,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument('-pde', choices=('linear', 'varadv', 'burger', 'bucklev'),
                     help='PDE', default='linear')
-parser.add_argument('-scheme', choices=('lw','rk2','fo' ), help='lw',
+parser.add_argument('-scheme', choices=('lw','rk2','fo','mh' ), help='lw',
                     default='fo')
 parser.add_argument('-corr', choices=('radau', 'g2'), help='Correction function',
                     default='radau')
@@ -25,10 +25,11 @@ parser.add_argument('-cfl', type=float, help='CFL number', default=1.0)
 parser.add_argument('-Tf', type=float, help='Final time', default=1.0)
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
                     default=1)
+parser.add_argument('-kappa', type=float, help='Kappa for κ-reconstruction', default=1.0/3.0)
 parser.add_argument('-ic', choices=('sin2pi', 'expo','hat', 'solid'),
                     help='Initial condition', default='sin2pi')
-parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
-                    default='no')
+parser.add_argument('-limit', choices=('no', 'mmod','mc','kappa'), help='Apply limiter',
+                    default='no')#Kappa is not a limiter but for ease of use it is added here and can be initialized as limiter
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-compute_error', choices=('no', 'yes'),
                     help='Compute error norm', default='no')
@@ -63,8 +64,6 @@ else:
 # Select cfl
 cfl = args.cfl
 beta = 1.0 # parameter in minmod
-if args.scheme == 'rk2':
-    args.limit = 'mmod'
 nx = args.ncellx       # number of cells in the x-direction
 ny = args.ncelly       # number of cells in the y-direction
 global fileid
@@ -138,14 +137,27 @@ def minmod(a,b,c):
         return sa * np.abs([a,b,c]).min()
     else:
         return 0.0
+def mc(a, b, c):
+    if a * b <= 0.0:
+        return 0.0
+    min_val = min(2.0 * abs(a), 2.0 * abs(b), abs(c))
+    return min_val if c >= 0 else -min_val
+
 
 def reconstruct(conjm1, conj, conjp1):
     if args.limit == 'no':
         return conj
+    elif args.limit == 'kappa' :
+        kappa = args.kappa 
+        # κ-reconstruction (Nishikawa): third-order MUSCL
+        return 0.5 * (conj + conjp1) - (1 - kappa) / 4.0 * (conjp1 - 2 * conj + conjm1)
     elif args.limit == 'mmod':
-        conl = conj + 0.5 * minmod( beta*(conj-conjm1), \
-                                0.5*(conjp1-conjm1), \
-                                beta*(conjp1-conj) )
+        conl = conj + 0.5 * minmod(beta * (conj - conjm1),
+                                   0.5 * (conjp1 - conjm1),
+                                   beta * (conjp1 - conj))
+        return conl
+    elif args.limit == 'mc':
+        conl = conj + 0.5 * mc(beta*(conj - conjm1), beta*(conjp1 - conj), 0.5*(conjp1 - conjm1))
         return conl
     else:
         print('limit type not define')
@@ -236,6 +248,35 @@ if args.plot_freq > 0:
     init_plot(ax2, ax2, ax3, v0)
     wait = input("Press enter to continue ")
 
+# Compute residual of fv  scheme
+def compute_residual(t,lam_x, lam_y, v, vres):
+    vres[:,:] = 0.0
+    # compute the inter-cell fluxes
+    # loop over interior  vertical faces
+    for i in range(1, nx+2):  # face between (i,j) and (i+1,j)
+        xf = (xmin + (i-1)*dx)  # x location of this face
+        for j in range(2, ny+2):
+            y = ymin + (j-2)*dy+ 0.5*dy # cetre of vertical face
+            vl = reconstruct(v[i-1, j], v[i, j], v[i+1, j])
+            vr = reconstruct(v[i+2, j], v[i+1, j], v[i, j])
+            Fl, Fr = xflux(xf, y, vl), xflux(xf, y, vr)
+            Fn = xnumflux(xf, y, Fl, Fr, vl, vr)
+            vres[i, j] += lamx*Fn
+            vres[i+1, j] -= lamx*Fn
+    # loop over interior horizontal faces
+    for j in range(1, ny+2):
+        yf = (ymin + (j-1)*dy)
+        for i in range(2, nx+2):
+            x = xmin + (i-2)*dx + 0.5 * dx
+            vl = reconstruct(v[i,j-1], v[i,j], v[i,j+1])
+            vr = reconstruct(v[i,j+2], v[i,j+1],v[i,j])
+            Gl, Gr = yflux(x,yf, vl), yflux(x,yf, vr)
+            Gn = ynumflux(x, yf, Gl, Gr, vl, vr)
+            vres[i, j] += lamy*Gn
+            vres[i,j+1] -= lamy*Gn
+    return vres
+
+
 #Update solution using RK time scheme
 def apply_ssprk22 ( t, dt, lam_x, lam_y, v_old, v, vres):
     #first stage
@@ -289,32 +330,92 @@ def compute_residual_lxw(t, dt, lam_x, lam_y, v, res):
                           + 0.25 * lam_x * lam_y * (v[i+1,j+1] - v[i+1,j-1] - v[i-1,j+1] + v[i-1,j-1] ) \
                           + 0.5 * lam_y**2 * ( v[i,j-1] - 2.0*v[i,j] + v[i,j+1])
     return -vres
-# Compute residual of fv  scheme
-def compute_residual(t,lam_x, lam_y, v, vres):
+def compute_residual_hancock(t, lamx, lamy, v, vres):
     vres[:,:] = 0.0
-    # compute the inter-cell fluxes
-    # loop over interior  vertical faces
-    for i in range(1, nx+2):  # face between (i,j) and (i+1,j)
-        xf = (xmin + (i-1)*dx)  # x location of this face
+    dt = lamx * dx  # recover dt from lamx
+    
+    # Create arrays to store predicted values
+    v_p = np.zeros_like(v)
+    
+    # Step 1: Compute slopes in each cell and predict forward by dt/2
+    for i in range(2, nx+2):  # Loop over real cells
         for j in range(2, ny+2):
-            y = ymin + (j-2)*dy+ 0.5*dy # cetre of vertical face
-            vl = reconstruct(v[i-1, j], v[i, j], v[i+1, j])
-            vr = reconstruct(v[i+2, j], v[i+1, j], v[i, j])
-            Fl, Fr = xflux(xf, y, vl), xflux(xf, y, vr)
+            # Compute x-direction slope
+            if args.limit == 'mmod':
+                slope_x = minmod(beta*(v[i,j] - v[i-1,j]), 
+                               0.5*(v[i+1,j] - v[i-1,j]), 
+                               beta*(v[i+1,j] - v[i,j]))
+            elif args.limit == 'mc':
+                # FIX: Use consistent scaling like in reconstruct function
+                slope_x = mc(beta*(v[i,j] - v[i-1,j]),      # backward diff
+                           beta*(v[i+1,j] - v[i,j]),        # forward diff  
+                           0.5*(v[i+1,j] - v[i-1,j]))       # central diff (properly scaled)
+            else:
+                slope_x = 0.5 * (v[i+1,j] - v[i-1,j])
+            
+            # Compute y-direction slope
+            if args.limit == 'mmod':
+                slope_y = minmod(beta*(v[i,j] - v[i,j-1]), 
+                               0.5*(v[i,j+1] - v[i,j-1]), 
+                               beta*(v[i,j+1] - v[i,j]))
+            elif args.limit == 'mc':
+                # FIX: Use consistent scaling like in reconstruct function
+                slope_y = mc(beta*(v[i,j] - v[i,j-1]),      # backward diff
+                           beta*(v[i,j+1] - v[i,j]),        # forward diff
+                           0.5*(v[i,j+1] - v[i,j-1]))       # central diff (properly scaled)
+            else:
+                slope_y = 0.5 * (v[i,j+1] - v[i,j-1])
+            
+            # Get advection velocity at cell center
+            x_center = xmin + (i-2)*dx + 0.5*dx
+            y_center = ymin + (j-2)*dy + 0.5*dy
+            speed = advection_velocity(x_center, y_center)
+            
+            # Predictor step: evolve cell average by dt/2
+            v_p[i,j] = v[i,j] - 0.5*dt * (speed[0]*slope_x/dx + speed[1]*slope_y/dy)
+    
+    # Update ghost cells for predicted values
+    update_ghost(v_p)
+    
+    # Step 2: Compute fluxes using predicted values
+    # x-direction fluxes
+    for i in range(1, nx+2):  # face between (i,j) and (i+1,j)
+        xf = xmin + (i-1)*dx  # x location of face
+        for j in range(2, ny+2):
+            y = ymin + (j-2)*dy + 0.5*dy  # y location at face center
+            
+            # Reconstruct using predicted values
+            vl = reconstruct(v_p[i-1,j], v_p[i,j], v_p[i+1,j])
+            vr = reconstruct(v_p[i+2,j], v_p[i+1,j], v_p[i,j])
+            
+            # Compute fluxes
+            Fl = xflux(xf, y, vl)
+            Fr = xflux(xf, y, vr)
             Fn = xnumflux(xf, y, Fl, Fr, vl, vr)
-            vres[i, j] += lamx*Fn
-            vres[i+1, j] -= lamx*Fn
-    # loop over interior horizontal faces
-    for j in range(1, ny+2):
-        yf = (ymin + (j-1)*dy)
+            
+            # Update residual
+            vres[i,j] += lamx * Fn
+            vres[i+1,j] -= lamx * Fn
+    
+    # y-direction fluxes
+    for j in range(1, ny+2):  # face between (i,j) and (i,j+1)
+        yf = ymin + (j-1)*dy  # y location of face
         for i in range(2, nx+2):
-            x = xmin + (i-2)*dx + 0.5 * dx
-            vl = reconstruct(v[i,j-1], v[i,j], v[i,j+1])
-            vr = reconstruct(v[i,j+2], v[i,j+1],v[i,j])
-            Gl, Gr = yflux(x,yf, vl), yflux(x,yf, vr)
+            x = xmin + (i-2)*dx + 0.5*dx  # x location at face center
+            
+            # Reconstruct using predicted values
+            vl = reconstruct(v_p[i,j-1], v_p[i,j], v_p[i,j+1])
+            vr = reconstruct(v_p[i,j+2], v_p[i,j+1], v_p[i,j])
+            
+            # Compute fluxes
+            Gl = yflux(x, yf, vl)
+            Gr = yflux(x, yf, vr)
             Gn = ynumflux(x, yf, Gl, Gr, vl, vr)
-            vres[i, j] += lamy*Gn
-            vres[i,j+1] -= lamy*Gn
+            
+            # Update residual
+            vres[i,j] += lamy * Gn
+            vres[i,j+1] -= lamy * Gn
+    
     return vres
 
 if (args.pde == 'linear' or args.pde == 'varadv'):
@@ -323,7 +424,7 @@ if (args.pde == 'linear' or args.pde == 'varadv'):
     #  |sigma_x| + |sigma_y| = cfl
     if ( args.scheme == 'lw'):
         dt = 0.72/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
-    elif (args.scheme == 'fo' or args.scheme == 'rk2'):
+    elif (args.scheme == 'fo' or args.scheme == 'rk2' or args.scheme == 'mh'):
         dt = cfl/(np.abs(sx)/dx + np.abs(sy)/dy + 1.0e-14).max()
 
 it, t = 0, 0.0
@@ -348,6 +449,10 @@ while t < Tf:
     elif args.scheme == 'fo':
         update_ghost(v)
         vres = compute_residual(t,lamx, lamy, v, vres)
+        v = v - vres
+    elif args.scheme == 'mh':
+        update_ghost(v)
+        vres = compute_residual_hancock(t,lamx,lamy,v,vres)
         v = v - vres
         
     t, it = t+dt, it+1
