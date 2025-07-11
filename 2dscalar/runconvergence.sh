@@ -9,6 +9,6 @@ do
    tail -n 1 log.txt
    tail -n 1 log.txt >> $FILE
 done
-echo "rk2 mmod"
+echo "rk2 kappa"
 python plotrate.py
 echo "Wrote file $FILE"
