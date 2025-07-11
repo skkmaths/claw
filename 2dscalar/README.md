@@ -10,6 +10,7 @@ Kappa Reconstruction can be implemented and one can choose between minmod limite
 Convergence test for order of accuracy works for 
 1. LW scheme ---> Linear advection ( including variable advection)
 2. MUSCL scheme---> Linear advection ( including variable advection) and Burgers equation
+3. MUSCL Scheme with Kappa Reconstruction for linear advection
 
 Default code runs the first order FV scheme
 
