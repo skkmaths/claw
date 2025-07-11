@@ -73,6 +73,7 @@ dy = (ymax - ymin)/ny
 # Allocate solution variables
 v = np.zeros((nx+4, ny+4))  # 2 ghost cells each side
 vres = np.zeros((nx+4, ny+4))  # 2 ghost cells each sideresidual
+error = np.zeros((nx+4, ny+4))  # 2 ghost cells each side
 # To store the cell averages only in real cells.
 # Set initial condition by interpolation
 for i in range(nx+4):
@@ -102,8 +103,9 @@ def getfilename(file, fileid):
     else:
         file =file+str(fileid)+".plt"
     return file
-# save solution to a file
-def savesol(t, var_u):
+
+# save solution to a file - CORRECTED VERSION
+def savesol(t, var_u, error_array):
     global fileid
     if not os.path.isdir("sol"): # creat a dir if not
        os.makedirs("sol")
@@ -119,15 +121,25 @@ def savesol(t, var_u):
     filename = getfilename(filename, fileid)
     file = open("./sol/"+filename,"a")
     file.write('TITLE = "Linear advectino equation" \n')
-    file.write('VARIABLES = "x", "y", "sol" \n')
+    file.write('VARIABLES = "x", "y", "sol","Error" \n')
     file.write("ZONE STRANDID=1, SOLUTIONTIME= "+ str(t)+ ", I= "+str(nx)+", J ="+str(ny)+", DATAPACKING=POINT \n")
     for j in range(2, ny+2):
         for i in range(2, nx+2):
             x = xmin + (i-2)*dx + 0.5*dx
             y = ymin + (j-2)*dy + 0.5*dy
-            file.write( str(x) + ", " + str(y) +"," + str(var_u[i,j])+"\n")
+            # Use consistent indexing - both var_u and error_array have ghost cells
+            file.write( str(x) + ", " + str(y) +"," + str(var_u[i,j])+","+str(error_array[i,j])+"\n")
     file.close()
     fileid = fileid + 1
+
+# Compute error array with ghost cells - NEW FUNCTION
+def compute_error_array(v, v0):
+    """Compute error array with same structure as v (including ghost cells)"""
+    error_full = np.zeros_like(v)
+    # Compute error only in real cells
+    error_full[2:nx+2, 2:ny+2] = np.abs(v[2:nx+2, 2:ny+2] - v0)
+    return error_full
+
 #-----------------------------------------------------------------------------
 def minmod(a,b,c):
     sa = np.sign(a)
@@ -429,9 +441,12 @@ if (args.pde == 'linear' or args.pde == 'varadv'):
 
 it, t = 0, 0.0
 Tf = args.Tf
-#save initial data
+
+# CORRECTED: Save initial data with proper error initialization
+error_array = compute_error_array(v, v0)  # Initially zero error
 if args.save_freq > 0:
-    savesol(t, v)
+    savesol(t, v, error_array)
+
 while t < Tf:
     if (args.pde == 'burger'):
         dt = cfl/(max_speed(v)/dx +max_speed(v)/dy)
@@ -440,6 +455,8 @@ while t < Tf:
     lamx, lamy = dt/dx,  dt/dy
     # Loop over real cells (no ghost cell) and compute cell integral
     v_old = v.copy()
+    
+    # CORRECTED: Consistent error handling for all schemes
     if args.scheme == 'lw':
         update_ghost(v)
         vres = compute_residual_lw(t, dt, lamx, lamy, v, vres)
@@ -454,11 +471,14 @@ while t < Tf:
         update_ghost(v)
         vres = compute_residual_hancock(t,lamx,lamy,v,vres)
         v = v - vres
-        
+    
+    # Compute error array consistently
+    error_array = compute_error_array(v, v0)
+
     t, it = t+dt, it+1
     if args.save_freq > 0:
         if it % args.save_freq == 0:
-            savesol(t, v)
+            savesol(t, v, error_array)
     if args.plot_freq > 0:
         print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
         if it% args.plot_freq == 0:
@@ -471,12 +491,12 @@ if args.compute_error == 'yes':
     li_err = np.abs(v[2:nx+2,2:ny+2]-v0).max()
     print('dx,dy,l1,l2,linf error =')# %10.4e %10.4e %10.4e %10.4e %10.4e' % 
     print(dx,dy,l1_err,l2_err,li_err)
-# print final data
+
+# CORRECTED: Save final data with proper error
 if args.save_freq > 0:
-    savesol(t,v)
+    savesol(t, v, error_array)
     print('it,t,min,max =', it, t, v[2:nx+2,2:ny+2].min(), v[2:nx+2,2:ny+2].max())
     print('solution saved to .plt files')
-
 
 if args.plot_freq > 0: 
     plt.show()

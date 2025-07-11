@@ -5,9 +5,10 @@ for ncell in $NCELL
 do 
    echo "ncell = $ncell"
    python clw2d.py -Tf 1.0 -ncellx $ncell -ncelly $ncell -compute_error yes \
-          -plot_freq 0 -scheme mh -limit kappa -cfl 0.5 -save_freq 0 >log.txt
+          -plot_freq 0 -scheme rk2 -limit kappa -cfl 0.5 -save_freq 0 >log.txt
    tail -n 1 log.txt
    tail -n 1 log.txt >> $FILE
 done
+echo "rk2 mmod"
 python plotrate.py
 echo "Wrote file $FILE"
