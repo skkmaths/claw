@@ -27,7 +27,7 @@ parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
                     default=1)
 parser.add_argument('-ic', choices=('sin2pi', 'expo','hat', 'solid'),
                     help='Initial condition', default='sin2pi')
-parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
+parser.add_argument('-limit', choices=('no', 'mmod', 'mc'), help='Apply limiter',
                     default='no')
 parser.add_argument('-tvbM', type=float, help='TVB M parameter', default=0.0)
 parser.add_argument('-compute_error', choices=('no', 'yes'),
@@ -63,8 +63,7 @@ else:
 # Select cfl
 cfl = args.cfl
 beta = 1.0 # parameter in minmod
-if args.scheme == 'rk2':
-    args.limit = 'mmod'
+
 nx = args.ncellx       # number of cells in the x-direction
 ny = args.ncelly       # number of cells in the y-direction
 global fileid
@@ -138,12 +137,24 @@ def minmod(a,b,c):
         return sa * np.abs([a,b,c]).min()
     else:
         return 0.0
+# mc limiter
+def mc(a, b, c):
+    if a * b <= 0.0:
+        return 0.0
+    else:
+        min_val = min(2.0 * abs(a), 2.0 * abs(b), abs(c))
+        return min_val if c >= 0 else -min_val
 
 def reconstruct(conjm1, conj, conjp1):
     if args.limit == 'no':
         return conj
     elif args.limit == 'mmod':
         conl = conj + 0.5 * minmod( beta*(conj-conjm1), \
+                                0.5*(conjp1-conjm1), \
+                                beta*(conjp1-conj) )
+        return conl
+    elif args.limit == 'mc':
+        conl = conj + 0.5 * mc( beta*(conj-conjm1), \
                                 0.5*(conjp1-conjm1), \
                                 beta*(conjp1-conj) )
         return conl
