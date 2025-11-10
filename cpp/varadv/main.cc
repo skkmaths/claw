@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     double cfl = 0.95; // Default value of cfl 
     unsigned int save_freq = 10; // Default save frequency
     string scheme = "fo"; //Default:first order in time and space scheme
+    string flux_type = "uw"; // Defaul flux Upwind 
     // Parse command-line arguments if provided
     // Pass this argument to the exe file 
     // ./twodproblem 50 50 2
@@ -43,13 +44,17 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(argv[i], "-scheme") == 0 && i + 1 < argc) {
             scheme =argv[i + 1];
             i++; // Skip the next argument
-        } else {
+        } else if (strcmp(argv[i], "-flux_type") == 0 && i + 1 < argc) {
+            scheme =argv[i + 1];
+            i++; // Skip the next argument
+        }
+          else {
             std::cerr << "Unknown or incomplete argument: " << argv[i] << std::endl;
             return 1;
         }
     }
 
-    TwoDProblem twodproblem(nx, ny, Tf, cfl, save_freq, scheme);
+    TwoDProblem twodproblem(nx, ny, Tf, cfl, save_freq, scheme, flux_type);
     twodproblem.run();
     return 0;
 }

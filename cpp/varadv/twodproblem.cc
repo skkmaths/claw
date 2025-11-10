@@ -123,32 +123,45 @@ double TwoDProblem::exact(const double& x, const double& y, const double& t) {
 // Numerical  flux in the x direction   across vertical wall
 double TwoDProblem::xnumflux(const double& x, const double& y, const double& ul,
        const double& ur)
-{
-    vector<double> v(2);
-    v = advection_velocity(x,y);
-    double vplus = std::max(0.0,v[0]);
-    double vminus = std::min(0.0,v[0]);
-    return vplus * ul + vminus * ur;
-    /*
-    vector<double> v(2);
-    v = advection_velocity(x,y);
-    return  0.5*( xflux(x,y,ul) + xflux(x,y,ur) - 0.5 *fabs(v[0])*(ur-ul) );
-    */
+{   
+    if (flux_type == "uw"){
+        vector<double> v(2);
+        v = advection_velocity(x,y);
+        double vplus = std::max(0.0,v[0]);
+        double vminus = std::min(0.0,v[0]);
+        return vplus * ul + vminus * ur;
+    }
+    else if ( flux_type == "llf" ){
+        vector<double> v(2);
+        v = advection_velocity(x,y);
+        return  0.5*( xflux(x,y,ul) + xflux(x,y,ur) - fabs(v[0])*(ur-ul) );
+    }
+    else {
+        cout<<"Unknown flux type"<<"endl";
+        abort();
+    }
+    
 }
 // numerical flux in the y direction  across  horizontal wall
 double TwoDProblem::ynumflux(const double& x, const double& y, const double& ul,
        const double& ur)
-{
-    vector<double> v(2);
-    v = advection_velocity(x,y);
-    double vplus = std::max(0.0, v[1]);
-    double vminus = std::min(0.0,v[1]);
-    return vplus * ul + vminus * ur;
-    /*
-    vector<double> v(2);
-    v = advection_velocity(x,y);
-    return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - 0.5* fabs(v[1])*(ur-ul));
-    */
+{   if (flux_type == "uw"){
+        vector<double> v(2);
+        v = advection_velocity(x,y);
+        double vplus = std::max(0.0, v[1]);
+        double vminus = std::min(0.0,v[1]);
+        return vplus * ul + vminus * ur;
+    }
+    else if(flux_type == "LLF"){
+        vector<double> v(2);
+        v = advection_velocity(x,y);
+        return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - fabs(v[1])*(ur-ul));
+    }
+    else {
+        cout<<"Unknown flux type"<<"endl";
+        abort();
+    }
+    
 }
 
 //------------------------------------------------------------------------------

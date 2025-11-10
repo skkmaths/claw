@@ -17,8 +17,8 @@ std::string top;
 class TwoDProblem
 {
    public:
-      TwoDProblem (int nx_val, int ny_val, double Tfinal, double cfl, unsigned int save_freq, string scheme):
-       nx(nx_val), ny(ny_val), Tf(Tfinal), cfl(cfl), save_freq(save_freq), scheme(scheme) {}
+      TwoDProblem (int nx_val, int ny_val, double Tfinal, double cfl, unsigned int save_freq, string scheme, string flux_type):
+       nx(nx_val), ny(ny_val), Tf(Tfinal), cfl(cfl), save_freq(save_freq), scheme(scheme), flux_type(flux_type) {}
       ~TwoDProblem () {};
       void run ();
 
@@ -35,6 +35,7 @@ class TwoDProblem
       double cfl;
       unsigned int save_freq;
       string scheme;
+      string flux_type;
       string ic ;
       double lam_x;
       double lam_y;
