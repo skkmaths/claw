@@ -17,8 +17,8 @@ This project implements two dimensional finite volume scheme for linear advectio
 - You can adjust the advection_speed function to get linear advection equations
 ## E.O.C. computation 
 - For E.O.C. computation set bc as periodic
-- For varadvection: set domain [ -1, 1], Final time  2*pi,  ic = "expo", cfl = 0.5
-- For linadvection: set domain [-1,1], adv velocity a(x,y) = ( 1,1), Final time  1, ic = "sin", cfl = 0.5
+- For varadvection: set domain [ -1, 1]X[-1,1], adv velocity a(x,y) = ( -y,x), Final time  2*pi,  ic = "expo", cfl = 0.5
+- For linadvection: set domain [-1,1]X[-1,1], adv velocity a(x,y) = ( 1,1), Final time  1, ic = "sin", cfl = 0.5
 - $sh runcongs.sh "20 40 80 160 320 640"
 - While computing E.O.C. set -save_freq 0 to save computational time
 - This will create error.txt file and can print the order of convergence as follows
