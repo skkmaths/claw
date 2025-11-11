@@ -294,7 +294,7 @@ void TwoDProblem::solve(){
     double time  = 0.0; // initial time
     unsigned iter = 0;
     fileid = 0;
-    dt  = cfl * grid.dx; // time step
+    dt  = cfl / ( 1.0/grid.dx + 1.0/grid.dy +1e-14); // time step
     res.allocate(grid.nx+4, grid.ny+4);
     sol_old.allocate(grid.nx+4, grid.ny+4);
 	savesol(0.0, sol); // save initial condition
