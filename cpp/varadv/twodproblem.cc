@@ -152,7 +152,7 @@ double TwoDProblem::ynumflux(const double& x, const double& y, const double& ul,
         double vminus = std::min(0.0,v[1]);
         return vplus * ul + vminus * ur;
     }
-    else if(flux_type == "LLF"){
+    else if(flux_type == "llf"){
         vector<double> v(2);
         v = advection_velocity(x,y);
         return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - fabs(v[1])*(ur-ul));
