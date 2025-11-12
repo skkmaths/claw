@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
             scheme =argv[i + 1];
             i++; // Skip the next argument
         } else if (strcmp(argv[i], "-flux_type") == 0 && i + 1 < argc) {
-            scheme =argv[i + 1];
+            flux_type =argv[i + 1];
             i++; // Skip the next argument
         }
           else {
