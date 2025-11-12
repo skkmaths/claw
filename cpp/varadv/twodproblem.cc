@@ -539,8 +539,8 @@ void TwoDProblem::solve(){
 //------------------------------------------------------------------------------
 void TwoDProblem::run ()
 { 
-  pde = "linear" ; // linear, varadv
-  ic =  "sin"; // expo, sin
+  pde = "varadv" ; // linear, varadv
+  ic =  "expo"; // expo, sin
   // set the domain vertices
   grid.xmax = 1.0;
   grid.xmin = -1.0;
