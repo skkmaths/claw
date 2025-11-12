@@ -7,7 +7,7 @@ printf "%-8s %-8s %-12s %-16s\n" \
 for ncell in $NCELL
 do 
    echo "ncell = $ncell"
-   ./run -nx $ncell -ny $ncell -Tf 1.0 -cfl 0.5 -save_freq 0 -scheme fo >log.txt
+   ./run -nx $ncell -ny $ncell -Tf 0.1 -cfl 0.5 -save_freq 0 -scheme fo -flux_type uw >log.txt
    tail -n 1 log.txt
    printf "%-8s %-8s %-12s %-16s\n" $(tail -n 1 log.txt) >> "$FILE"
 done
