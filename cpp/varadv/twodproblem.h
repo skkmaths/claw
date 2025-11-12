@@ -34,7 +34,7 @@ class TwoDProblem
       double dt;
       double cfl;
       unsigned int save_freq;
-      string scheme;
+      string scheme, pde;
       string flux_type;
       string ic ;
       double lam_x;
@@ -54,10 +54,11 @@ class TwoDProblem
       void solve();
       void savesol(double t, Matrix& sol);
       vector<double> findMinMax();
-      void compute_error(double& l1error);
+      void compute_error(double& l1error, double& time);
       void apply_ssprk2(const double& time);
       void apply_euler(const double& time);
       void compute_dt();
       double reconstruct(const double& sol_ll,const double& sol_l,const double& sol_r);
       double exact(const double& x, const double& y, const double& t);
+      vector<double> advection_velocity(const double& x, const double& y);
 };

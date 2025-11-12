@@ -62,11 +62,21 @@ std::string getFilename(const std::string& basename, int id) {
     oss << basename << "_" << std::setfill('0') << std::setw(4) << id << ".plt";
     return oss.str();
 }
-vector<double> advection_velocity(const double& x, const double& y)
+vector<double> TwoDProblem::advection_velocity(const double& x, const double& y)
 {
     vector<double> v(2);
-    v[0]  = -y;
-    v[1]  = x;
+    if( pde =="linear"){
+        v[0]  = 1.0;
+        v[1]  = 1.0;
+    }
+    else if( pde =="varadv"){
+        v[0]  = -y;
+        v[1]  =  x;
+    } else{
+        cout<<"unknown pde"<<endl;
+        abort();
+    }
+    
     return v;
 }
 
@@ -116,9 +126,24 @@ double  TwoDProblem::initial_data( const double& x, const double& y)
 
 }
 
-// Exact solution for c1 = -y, c2 = x, of ut+c1ux+c2uy = 0
+
 double TwoDProblem::exact(const double& x, const double& y, const double& t) {
-   return initial_data( std::cos(t) * x + std::sin(t) * y, -std::sin(t)* x + std::cos(t) * y);
+
+    if( pde == "linear"){
+        vector<double> v(2);
+        v = advection_velocity(x,y);
+        // exact solution for constant advection speed
+        return initial_data( x-v[0]*t, y-v[1]*t);
+    }
+    else if (pde == "varadv"){
+        // Exact solution for c1 = -y, c2 = x, of ut+c1ux+c2uy = 0
+        return initial_data( std::cos(t) * x + std::sin(t) * y, -std::sin(t)* x + std::cos(t) * y);
+    }
+    else{
+        cout<<"unknown pde type"<<endl;
+        abort();
+    }
+
 }
 // Numerical  flux in the x direction   across vertical wall
 double TwoDProblem::xnumflux(const double& x, const double& y, const double& ul,
@@ -155,7 +180,7 @@ double TwoDProblem::ynumflux(const double& x, const double& y, const double& ul,
     else if(flux_type == "llf"){
         vector<double> v(2);
         v = advection_velocity(x,y);
-        return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - fabs(v[1])*(ur-ul));
+        return 0.5*( yflux(x,y,ul) + yflux(x,y,ur) - fabs(v[1])*(ur-ul) );
     }
     else {
         cout<<"Unknown flux type"<<"endl";
@@ -448,13 +473,13 @@ std::vector<double> TwoDProblem::findMinMax()
 // Final time solution and initial condition
 // are assumed to be the same here
 //-----------------------------------------------------------------------------
-void TwoDProblem::compute_error(double& l1error)
+void TwoDProblem::compute_error(double& l1error, double& time )
 {    l1error = 0.0;
     for (unsigned int i = 2; i < grid.nx+2; ++i)
       {
         for (unsigned int j = 2; j < grid.ny+2; ++j)
         {
-            l1error += abs( sol(i,j)- initial_data( grid.xc(i-2,j-2), grid.yc(i-2,j-2) ) );
+            l1error += abs( sol(i,j)- exact(grid.xc(i-2,j-2), grid.yc(i-2,j-2), time) );
         } 
       } 
     l1error*=(grid.dx*grid.dy);
@@ -506,12 +531,16 @@ void TwoDProblem::solve(){
     }
     // save final time solution
     savesol(time,sol);
+    assert((Tf == time) && "Final time error"); 
+    Tf = time;// save final time as time, both must be the same.
 }
 //------------------------------------------------------------------------------
 // solve the whole problem
 //------------------------------------------------------------------------------
 void TwoDProblem::run ()
 { 
+  pde = "linear" ; // linear, varadv
+  ic =  "sin"; // expo, sin
   // set the domain vertices
   grid.xmax = 1.0;
   grid.xmin = -1.0;
@@ -523,7 +552,7 @@ void TwoDProblem::run ()
   bc.bottom = "periodic";
   bc.top = "periodic" ;
   // choose initial condition from "expo, sin, smooth, nonsmooth"
-  ic =  "expo"; 
+  
   make_grid();
   initialize();
   auto start_wall = std::chrono::system_clock::now();
@@ -531,7 +560,7 @@ void TwoDProblem::run ()
   auto end_wall = std::chrono::system_clock::now();
   std::chrono::duration<double> duration_wall = end_wall - start_wall;
   double l1error;
-  compute_error(l1error);
+  compute_error(l1error, Tf);
   cout<<"#cells, h, l1error, WCT"<<endl;
   cout<< grid.nx * grid.ny <<" "<< grid.dx <<" "<< l1error<<" "<< duration_wall.count()<< endl;
   // WCT- Wall clock time
