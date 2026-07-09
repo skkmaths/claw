@@ -2,7 +2,8 @@ from os import minor
 import numpy as np
 from scipy import optimize
 import sympy as sp
-
+from scipy.optimize import minimize_scalar
+#-----------------set dflux --------------------------------------------------------------
 # discontinuous flux conservation law
 # u_t + F(x, u)_x = 0
 # set domain
@@ -16,19 +17,12 @@ g = 20.0 * u * u * (1.0-u)**2 / ( u**2 + 2.0 * ( 1.0-u)**2)
 f = 50.0 * u * u * (1.0-u)**2 / ( 10.0 * u**2 + ( 1.0-u)**2)
 theta_g = (2.0 + 2.0**(1.0/3.0) - 2.0**(2.0/3.0)) / 3.0
 theta_f = 0.317014
-# Here M = Max( max |f'|,max|g'|)
-M = 2.0
-
-
 dxg = sp.diff(g,u)
 dxf = sp.diff(f,u)
-
 g = sp.lambdify(u,g)
 f = sp.lambdify(u,f)
-
 dxg = sp.lambdify(u,dxg)
 dxf = sp.lambdify(u,dxf)
-
 def H(x):
     if x <= 0:
         return 0.0
@@ -40,7 +34,25 @@ def flux(x,u):
 def dxflux(x,u):
     return  (1.0 - H(x)) * dxg(u) + H(x) * dxf(u) 
 
-
+#-----------------set dflux --------------------------------------------------------------
+# Here M = Max( max |f'|,max|g'|)
+#------------------------compute M ------------------------------------------------------
+# maximize |g'(u)|
+res_g = minimize_scalar(
+    lambda x: -abs(dxg(x)),
+    bounds=(0.0, 1.0),
+    method='bounded'
+)
+# maximize |f'(u)|
+res_f = minimize_scalar(
+    lambda x: -abs(dxf(x)),
+    bounds=(0.0, 1.0),
+    method='bounded'
+)
+Mg = abs(dxg(res_g.x))
+Mf = abs(dxf(res_f.x))
+M = max(Mg, Mf)
+#------------------------compute M ------------------------------------------------------
 # Variables for computing the diffusion coefficients
 y, z = sp.symbols('x z', real=True)
 A, B, kappa = sp.symbols('A B kappa', positive=True)
