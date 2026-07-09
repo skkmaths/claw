@@ -8,8 +8,17 @@ import sympy as sp
 # set domain
 xmin, xmax = -4, 4.0
 u = sp.symbols('u')
-g =  2.0*u*(1.0-u)/(1.0+u)
-f =  2.0*u*(1.0-u)/(2.0-u)
+#g =  2.0*u*(1.0-u)/(1.0+u)
+#f =  2.0*u*(1.0-u)/(2.0-u)
+#theta_g = -1 + np.sqrt(2)
+#theta_f = 2.0 - np.sqrt(2)
+g = 20.0 * u * u * (1.0-u)**2 / ( u**2 + 2.0 * ( 1.0-u)**2)
+f = 50.0 * u * u * (1.0-u)**2 / ( 10.0 * u**2 + ( 1.0-u)**2)
+theta_g = (2.0 + 2.0**(1.0/3.0) - 2.0**(2.0/3.0)) / 3.0
+theta_f = 0.317014
+# Here M = Max( max |f'|,max|g'|)
+M = 2.0
+
 
 dxg = sp.diff(g,u)
 dxf = sp.diff(f,u)
@@ -30,11 +39,39 @@ def flux(x,u):
     return  (1.0 - H(x)) * g(u) + H(x) * f(u) 
 def dxflux(x,u):
     return  (1.0 - H(x)) * dxg(u) + H(x) * dxf(u) 
-# Here M = Max( max |f'|,max|g'|)
-M = 2.0
 
-theta_g = -1 + np.sqrt(2)
-theta_f = 2.0 - np.sqrt(2)
+
+# Variables for computing the diffusion coefficients
+y, z = sp.symbols('x z', real=True)
+A, B, kappa = sp.symbols('A B kappa', positive=True)
+
+# Left branch
+aL = sp.Piecewise(
+    (kappa*z/A, z <= A),
+    (kappa + (z-A)/(1-A)*(1-kappa), True)
+)
+
+# Right branch
+aR = sp.Piecewise(
+    (kappa*z/B, z <= B),
+    (kappa + (z-B)/(1-B)*(1-kappa), True)
+)
+
+# Complete function
+a = sp.Piecewise(
+    (aL, y < 0),
+    (aR, True)
+)
+# Define the vaues of A and B and Kappa here
+a_num = a.subs({
+    A: 0.63839972,
+    B: 0.317014,
+    kappa: 0.5
+})
+# define the function as a variable in y and z
+diffusion = sp.lambdify((y, z), a_num, "numpy")
+
+
 
 def dflu(x, ul, ur, fl, fr, lamda, h, sl, sr):
     if x < 0:
@@ -49,6 +86,14 @@ def lxf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     xcl = x -0.5*h
     xcr = x+0.5*h
     return 0.5*( flux(xcl, ul) + flux(xcr,ur) - (ur -ul)/lamda  )
+
+def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
+    # center of left and right cells
+    xcl = x -0.5*h
+    xcr = x+0.5*h
+    # find local speed
+    speed = max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
+    return 0.5*( flux(xcl, ul) + flux(xcr,ur) - speed * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
 
 # numflux for Nessyahu Tadmore scheme
 def nt(x, ul, ur, fl, fr, lamda, h, sl, sr ):
@@ -68,4 +113,4 @@ def uexact(x, t, u0):
         ue[i] = optimize.fsolve(imp_eqn, seed_value)
     return ue
 
-numfluxes = ['dflu', 'nt','lxf']
+numfluxes = ['dflu', 'nt','lxf', 'llf']

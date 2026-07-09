@@ -22,7 +22,7 @@ parser.add_argument('-pde', choices=('linear','dflux','varadv','burger','buckley
                                      'burger_adv',
                                      'oreqn1','oreqn2','oreqn3','oreqn4'),
                     help='PDE', default='linear')
-parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','dflu','godunov','upwind','nt', 'lxf'), default='rusanov')
+parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','dflu','godunov','upwind','nt', 'lxf', 'llf'), default='rusanov')
 parser.add_argument('-compute_error', choices=('no','yes'),
                     help='Compute error norm', default='no')
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
@@ -30,12 +30,14 @@ parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
 parser.add_argument('-time_scheme', default = 'euler',
                     help = 'Chosen by degree if unspecified',
                     choices = ('euler','ssprk22'))
-parser.add_argument('-bc', default = 'periodic',
+parser.add_argument('-bc', default = 'dc',
                     help = 'Chose the boundary condition',
-                    choices = ('periodic','dirichlet'))
+                    choices = ('periodic','dc'))
 parser.add_argument('-limit', choices=('no', 'mmod'), help='Apply limiter',
                     default='no')
 parser.add_argument('-alpha', type=float, help='Slope parameter', default=0.5)
+parser.add_argument('-pexact', choices=('no', 'yes'), help='Plot exact solution',
+                    default='no')
 args = parser.parse_args()
 # Select PDE
 
@@ -64,6 +66,8 @@ elif args.numflux == 'nt':
     numflux = nt
 elif args.numflux == 'lxf':
     numflux = lxf
+elif args.numflux == 'llf':
+    numflux = llf
 elif args.numflux == 'dflu':
     numflux = dflu
 elif args.numflux == 'buckley1':
@@ -166,7 +170,7 @@ def update_ghost(u1):
         u1[1] = u1[nc+1]
         u1[nc+3] = u1[3]
         u1[nc+2] = u1[2]
-    elif args.bc == 'dirichlet':
+    elif args.bc == 'dc':
         # left ghost cell
         u1[0] = uinit(x[0])
         u1[1] = uinit(x[0])
