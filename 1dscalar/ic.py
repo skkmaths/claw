@@ -7,9 +7,9 @@ def dflu1(x):
 
 def dflu2(x):
     if x < 0.0:
-        return 0.9
-    else:
         return 0.2
+    else:
+        return 0.8
 dflu2 = np.vectorize(dflu2)
 
 def smooth(x):
