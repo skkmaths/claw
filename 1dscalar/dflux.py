@@ -54,7 +54,7 @@ Mf = abs(dxf(res_f.x))
 M = max(Mg, Mf)
 #------------------------compute M ------------------------------------------------------
 # Variables for computing the diffusion coefficients
-y, z = sp.symbols('x z', real=True)
+y, z = sp.symbols('y z', real=True)
 A, B, kappa = sp.symbols('A B kappa', positive=True)
 
 # Left branch
@@ -71,7 +71,7 @@ aR = sp.Piecewise(
 
 # Complete function
 a = sp.Piecewise(
-    (aL, y < 0),
+    (aL, y < 0.0),
     (aR, True)
 )
 # Define the vaues of A and B and Kappa here
