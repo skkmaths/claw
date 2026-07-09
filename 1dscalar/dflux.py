@@ -98,7 +98,20 @@ def lxf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     xcl = x -0.5*h
     xcr = x+0.5*h
     return 0.5*( flux(xcl, ul) + flux(xcr,ur) - (ur -ul)/lamda  )
-
+'''
+def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
+    # center of left and right cells
+    xcl = x -0.5*h
+    xcr = x+0.5*h
+    # find local speed
+    speed = max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
+    if x < 0.0:
+        return 0.5*( flux(x, ul) + flux(x, ur) - speed * ( ur  - ul )  )
+    elif x > 0.0:
+        return 0.5*( flux(x, ul) + flux(x, ur) - speed * ( ur - ul )  )
+    else:
+        return 0.5*( flux(xcl, ul) + flux(xcr,ur) - speed * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
+'''
 def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     # center of left and right cells
     xcl = x -0.5*h
@@ -106,7 +119,6 @@ def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     # find local speed
     speed = max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
     return 0.5*( flux(xcl, ul) + flux(xcr,ur) - speed * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
-
 # numflux for Nessyahu Tadmore scheme
 def nt(x, ul, ur, fl, fr, lamda, h, sl, sr ):
     xcl = x -0.5*h
