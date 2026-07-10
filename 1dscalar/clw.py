@@ -22,7 +22,7 @@ parser.add_argument('-pde', choices=('linear','dflux','varadv','burger','buckley
                                      'burger_adv',
                                      'oreqn1','oreqn2','oreqn3','oreqn4'),
                     help='PDE', default='linear')
-parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','dflu','godunov','upwind','nt', 'lxf', 'llf'), default='rusanov')
+parser.add_argument('-numflux', help='Numerical Flux',choices=('rusanov','dflu','godunov','upwind','nt', 'lxf', 'llf', 'llfd'), default='rusanov')
 parser.add_argument('-compute_error', choices=('no','yes'),
                     help='Compute error norm', default='no')
 parser.add_argument('-plot_freq', type=int, help='Frequency to plot solution',
@@ -70,6 +70,8 @@ elif args.numflux == 'llf':
     numflux = llf
 elif args.numflux == 'dflu':
     numflux = dflu
+elif args.numflux == 'llfd':
+    numflux = llfd
 elif args.numflux == 'buckley1':
     numflux = buckley1
 # constants

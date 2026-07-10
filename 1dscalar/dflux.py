@@ -15,8 +15,8 @@ u = sp.symbols('u')
 #theta_f = 2.0 - np.sqrt(2)
 g = 20.0 * u * u * (1.0-u)**2 / ( u**2 + 2.0 * ( 1.0-u)**2)
 f = 50.0 * u * u * (1.0-u)**2 / ( 10.0 * u**2 + ( 1.0-u)**2)
-theta_g = (2.0 + 2.0**(1.0/3.0) - 2.0**(2.0/3.0)) / 3.0
-theta_f = 0.317014
+theta_f = 0.557506665975558
+theta_g = 0.317014
 dxg = sp.diff(g,u)
 dxf = sp.diff(f,u)
 g = sp.lambdify(u,g)
@@ -78,6 +78,8 @@ a = sp.Piecewise(
 a_num = a.subs({
     A: 0.63839972,
     B: 0.317014,
+    #A: 0.317014,
+    #B: 0.472372,
     kappa: 0.5
 })
 # define the function as a variable in y and z
@@ -98,20 +100,18 @@ def lxf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     xcl = x -0.5*h
     xcr = x+0.5*h
     return 0.5*( flux(xcl, ul) + flux(xcr,ur) - (ur -ul)/lamda  )
-'''
-def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
+
+def llfd(x, ul, ur, fl, fr, lamda, h, sl, sr):
     # center of left and right cells
     xcl = x -0.5*h
     xcr = x+0.5*h
     # find local speed
     speed = max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
-    if x < 0.0:
+    if x < 0.0 or x >0.0:
         return 0.5*( flux(x, ul) + flux(x, ur) - speed * ( ur  - ul )  )
-    elif x > 0.0:
-        return 0.5*( flux(x, ul) + flux(x, ur) - speed * ( ur - ul )  )
     else:
         return 0.5*( flux(xcl, ul) + flux(xcr,ur) - speed * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
-'''
+
 def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     # center of left and right cells
     xcl = x -0.5*h
@@ -119,6 +119,7 @@ def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     # find local speed
     speed = max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
     return 0.5*( flux(xcl, ul) + flux(xcr,ur) - speed * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
+
 # numflux for Nessyahu Tadmore scheme
 def nt(x, ul, ur, fl, fr, lamda, h, sl, sr ):
     xcl = x -0.5*h
@@ -137,4 +138,4 @@ def uexact(x, t, u0):
         ue[i] = optimize.fsolve(imp_eqn, seed_value)
     return ue
 
-numfluxes = ['dflu', 'nt','lxf', 'llf']
+numfluxes = ['dflu', 'nt','lxf', 'llf', 'llfd']
