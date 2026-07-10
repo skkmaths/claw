@@ -80,7 +80,7 @@ a_num = a.subs({
     B: 0.317014,
     #A: 0.317014,
     #B: 0.472372,
-    kappa: 0.5
+    kappa: 0.42206445
 })
 # define the function as a variable in y and z
 diffusion = sp.lambdify((y, z), a_num, "numpy")
@@ -106,7 +106,7 @@ def llfd(x, ul, ur, fl, fr, lamda, h, sl, sr):
     xcl = x -0.5*h
     xcr = x+0.5*h
     # find local speed
-    speed = max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
+    speed =  max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
     if x < 0.0 or x >0.0:
         return 0.5*( flux(x, ul) + flux(x, ur) - speed * ( ur  - ul )  )
     else:
