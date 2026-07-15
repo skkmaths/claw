@@ -54,42 +54,40 @@ Mg = abs(dxg(res_g.x))
 Mf = abs(dxf(res_f.x))
 M = max(Mg, Mf)
 #-------------------diffusion function choice 1 ---------------------------
-'''
-y, z = sp.symbols('y z', real=True)
+#(A,B)
+Aval = 0.63839972 
+Bval = 0.317014
+#Aval = 0.317014,
+#Bval = 0.472372,
+kval  = 0.42206445 #kappa
+x, z = sp.symbols('x z', real=True)
 A, B, kappa = sp.symbols('A B kappa', positive=True)
-
 # Left branch
-aL = sp.Piecewise(
+a1L = sp.Piecewise(
     (kappa*z/A, z <= A),
     (kappa + (z-A)/(1-A)*(1-kappa), True)
 )
 
 # Right branch
-aR = sp.Piecewise(
+a1R = sp.Piecewise(
     (kappa*z/B, z <= B),
     (kappa + (z-B)/(1-B)*(1-kappa), True)
 )
 
 # Complete function
-a = sp.Piecewise(
-    (aL, y < 0.0),
-    (aR, True)
+a1 = sp.Piecewise(
+    (a1L, x < 0.0),
+    (a1R, True)
 )
 # Define the vaues of A and B and Kappa here
-a_num = a.subs({
-    A: 0.63839972,
-    B: 0.317014,
-    #A: 0.317014,
-    #B: 0.472372,
-    kappa: 0.42206445
+a1_num = a1.subs({
+    A: Aval,
+    B: Bval,
+    kappa: kval
 })
 # define the function as a variable in y and z
-diffusion = sp.lambdify((y, z), a_num, "numpy")
-'''
+diffusion1 = sp.lambdify((x, z), a1_num, "numpy")
 #----diffusion function choice 2-------------------------
-x, z = sp.symbols('x z', real=True)
-A, B, kappa = sp.symbols('A B kappa', positive=True)
-
 # Parameters
 mA = sp.Min(A, kappa)
 MA = sp.Max(A, kappa)
@@ -98,33 +96,30 @@ mB = sp.Min(B, kappa)
 MB = sp.Max(B, kappa)
 
 # Left diffusion
-aL = sp.Piecewise(
+a2L = sp.Piecewise(
     (kappa*z/mA, z <= mA),
     (kappa, (z > mA) & (z <= MA)),
     (kappa + (z-MA)*(1-kappa)/(1-MA), True)
 )
 
 # Right diffusion
-aR = sp.Piecewise(
+a2R = sp.Piecewise(
     (kappa*z/mB, z <= mB),
     (kappa, (z > mB) & (z <= MB)),
     (kappa + (z-MB)*(1-kappa)/(1-MB), True)
 )
 
 # Complete diffusion function
-a = sp.Piecewise(
-    (aL, x < 0),
-    (aR, True)
+a2 = sp.Piecewise(
+    (a2L, x < 0),
+    (a2R, True)
 )
-a_num = a.subs({
-    A: 0.63839972,
-    B: 0.317014,
-    #A: 0.317014,
-    #B: 0.472372,
-    kappa: 0.42206445
+a2_num = a2.subs({
+    A: Aval,
+    B: Bval,
+    kappa: kval
 })
-diffusion = sp.lambdify((x, z), a_num, "numpy")
-
+diffusion2 = sp.lambdify((x, z), a2_num, "numpy")
 
 def dflu(x, ul, ur, fl, fr, lamda, h, sl, sr):
     if x < 0:
@@ -146,6 +141,7 @@ def llfd(x, ul, ur, fl, fr, lamda, h, sl, sr):
     xcr = x+0.5*h
     # find local speed
     speed =  M #max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
+    diffusion = diffusion2
     if x < 0.0 or x >0.0:
         return 0.5*( flux(x, ul) + flux(x, ur) - speed * ( ur  - ul )  )
     else:
@@ -156,6 +152,7 @@ def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     xcl = x -0.5*h
     xcr = x+0.5*h
     # find local speed
+    diffusion = diffusion2
     speed = max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
     return 0.5*( flux(xcl, ul) + flux(xcr,ur) - speed * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
 
