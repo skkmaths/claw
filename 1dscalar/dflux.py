@@ -15,8 +15,9 @@ u = sp.symbols('u')
 #theta_f = 2.0 - np.sqrt(2)
 g = 20.0 * u * u * (1.0-u)**2 / ( u**2 + 2.0 * ( 1.0-u)**2)
 f = 50.0 * u * u * (1.0-u)**2 / ( 10.0 * u**2 + ( 1.0-u)**2)
-theta_f = 0.557506665975558
 theta_g = 0.317014
+theta_f = 0.557506665975558
+
 dxg = sp.diff(g,u)
 dxf = sp.diff(f,u)
 g = sp.lambdify(u,g)
@@ -52,8 +53,8 @@ res_f = minimize_scalar(
 Mg = abs(dxg(res_g.x))
 Mf = abs(dxf(res_f.x))
 M = max(Mg, Mf)
-#------------------------compute M ------------------------------------------------------
-# Variables for computing the diffusion coefficients
+#-------------------diffusion function choice 1 ---------------------------
+'''
 y, z = sp.symbols('y z', real=True)
 A, B, kappa = sp.symbols('A B kappa', positive=True)
 
@@ -84,7 +85,45 @@ a_num = a.subs({
 })
 # define the function as a variable in y and z
 diffusion = sp.lambdify((y, z), a_num, "numpy")
+'''
+#----diffusion function choice 2-------------------------
+x, z = sp.symbols('x z', real=True)
+A, B, kappa = sp.symbols('A B kappa', positive=True)
 
+# Parameters
+mA = sp.Min(A, kappa)
+MA = sp.Max(A, kappa)
+
+mB = sp.Min(B, kappa)
+MB = sp.Max(B, kappa)
+
+# Left diffusion
+aL = sp.Piecewise(
+    (kappa*z/mA, z <= mA),
+    (kappa, (z > mA) & (z <= MA)),
+    (kappa + (z-MA)*(1-kappa)/(1-MA), True)
+)
+
+# Right diffusion
+aR = sp.Piecewise(
+    (kappa*z/mB, z <= mB),
+    (kappa, (z > mB) & (z <= MB)),
+    (kappa + (z-MB)*(1-kappa)/(1-MB), True)
+)
+
+# Complete diffusion function
+a = sp.Piecewise(
+    (aL, x < 0),
+    (aR, True)
+)
+a_num = a.subs({
+    A: 0.63839972,
+    B: 0.317014,
+    #A: 0.317014,
+    #B: 0.472372,
+    kappa: 0.42206445
+})
+diffusion = sp.lambdify((x, z), a_num, "numpy")
 
 
 def dflu(x, ul, ur, fl, fr, lamda, h, sl, sr):
@@ -106,11 +145,11 @@ def llfd(x, ul, ur, fl, fr, lamda, h, sl, sr):
     xcl = x -0.5*h
     xcr = x+0.5*h
     # find local speed
-    speed =  max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
+    speed =  M #max ( abs( dxflux(xcl, ul) ), abs( dxflux(xcr,ur) ) )
     if x < 0.0 or x >0.0:
         return 0.5*( flux(x, ul) + flux(x, ur) - speed * ( ur  - ul )  )
     else:
-        return 0.5*( flux(xcl, ul) + flux(xcr,ur) - speed * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
+        return 0.5*( flux(xcl, ul) + flux(xcr,ur) - M * ( diffusion(xcr,ur)  - diffusion(xcl,ul) )  )
 
 def llf(x, ul, ur, fl, fr, lamda, h, sl, sr):
     # center of left and right cells
